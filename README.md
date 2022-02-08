@@ -12,9 +12,9 @@ Annotate a chain file:
 # Annotate contig and positions
 python src/annotate.py -c <chain> -o <out>
 # Add identity
-python src/annotate.py -c <chain> -o <out> -f1 <source.fasta> -f2 <target.fasta>
+python src/annotate.py -c <chain> -o <out> -fs <source.fasta> -ft <target.fasta>
 # Also write liftable regions to BED files
-python src/annotate.py -c <chain> -o <out> -f1 <source.fasta> -f2 <target.fasta> -b <bed_prefix>
+python src/annotate.py -c <chain> -o <out> -fs <source.fasta> -ft <target.fasta> -b <bed_prefix>
 ```
 
 
