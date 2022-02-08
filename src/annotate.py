@@ -1,9 +1,9 @@
 '''
-Add info for a chain file to facilitate debugging
+Annotate a chain file
 
 Nae-Chyun Chen
 Johns Hopkins University
-2021
+2021-2022
 '''
 import argparse
 import leviosam_utils
@@ -23,7 +23,7 @@ def parse_args():
     )
     parser.add_argument(
         '-b', '--bed_prefix', default='',
-        help='Prefix to the BED files that include all the chain segments. [empty string]'
+        help='Prefix to the BED files that specify the aligned regions in `-c`. [empty string]'
     )
     parser.add_argument(
         '-s', '--summary', default='',
@@ -41,21 +41,6 @@ def parse_args():
     return args
 
 
-def reverse_complement(seq):
-    d = {'A': 'T', 'a': 'T', 'C': 'G', 'c': 'G',
-         'G': 'C', 'g': 'G', 'T': 'A', 't': 'A',
-         'N': 'N'}
-    rc = ''
-    for s in seq:
-        if s in d:
-            rc += d[s]
-        else:
-            print(f'Base "{s}" is not a known nucleotide and is converted to N',
-                  file=sys.stderr)
-            rc += 'N'
-    return rc[::-1]
-
-
 def compute_hamming_dist(
     forward,
     ref1, contig1, start1, end1,
@@ -69,7 +54,7 @@ def compute_hamming_dist(
     if contig2 in ref2:
         s2 = ref2[contig2][start2: end2]
         if not forward:
-            s2 = reverse_complement(s2)
+            s2 = leviosam_utils.reverse_complement(s2)
     else:
         print(f'Warning : {contig2} not in ref2', file=sys.stderr)
         return 0
@@ -104,7 +89,7 @@ def write_to_summary(fs_fn, fs, strand, l, hd, source, s_start, dest, d_start):
                    f'\t{dest}\t{d_start-l}\t{d_start}'), file=fs)
 
 
-def verbosify_chain(args):
+def annotate(args):
     f = open(args.chain, 'r')
     if args.out == '':
         fo = sys.stderr
@@ -184,7 +169,6 @@ def verbosify_chain(args):
             else:
                 s_start += (l + ds)
                 d_start -= (l + dd)
-            # write_to_summary(args.summary, fs, strand, l, hd, source, s_start, dest, d_start)
             if check_hdist:
                 total_bases_idy += (l * hd)
         elif len(fields) == 1 and fields[0] != '':
@@ -225,10 +209,11 @@ if __name__ == '__main__':
     args = parse_args()
 
     print('Input chain:', args.chain, file=sys.stderr)
-    print('Output chain (verbose):', args.out, file=sys.stderr)
+    print('Output chain (annotated):', args.out, file=sys.stderr)
 
     assert (args.ref1 != '' and args.ref2 != '') or (args.ref1 == '' and args.ref2 == '')
-    print('Ref1:', args.ref1, file=sys.stderr)
-    print('Ref2:', args.ref2, file=sys.stderr)
+    print('Source reference:', args.ref1, file=sys.stderr)
+    print('Target/Dest reference:', args.ref2, file=sys.stderr)
 
-    verbosify_chain(args)
+    annotate(args)
+
