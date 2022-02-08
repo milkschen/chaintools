@@ -9,8 +9,11 @@ Annotate a chain file:
 * Write liftable regions to a pair of BED files (one for source and one for target) (optional)
 
 ```
+# Annotate contig and positions
 python src/annotate.py -c <chain> -o <out>
+# Add identity
 python src/annotate.py -c <chain> -o <out> -f1 <source.fasta> -f2 <target.fasta>
+# Also write liftable regions to BED files
 python src/annotate.py -c <chain> -o <out> -f1 <source.fasta> -f2 <target.fasta> -b <bed_prefix>
 ```
 
