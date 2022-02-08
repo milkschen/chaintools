@@ -6,7 +6,7 @@ Johns Hopkins University
 2021-2022
 '''
 import argparse
-import leviosam_utils
+import utils
 import pysam
 import re
 import sys
@@ -30,86 +30,49 @@ def parse_args():
         help='Path to the output summary. Leave empty for no output. [empty string]'
     )
     parser.add_argument(
-        '-f1', '--ref1', default='',
+        '-fs', '--s_ref', default='',
         help='Path to the source reference (optional).'
     )
     parser.add_argument(
-        '-f2', '--ref2', default='',
+        '-ft', '--t_ref', default='',
         help='Path to the destination reference (optional).'
     )
     args = parser.parse_args()
     return args
 
 
-def compute_hamming_dist(
-    forward,
-    ref1, contig1, start1, end1,
-    ref2, contig2, start2, end2
-):
-    if contig1 in ref1:
-        s1 = ref1[contig1][start1: end1]
-    else:
-        print(f'Warning : {contig1} not in ref1', file=sys.stderr)
-        return 0
-    if contig2 in ref2:
-        s2 = ref2[contig2][start2: end2]
-        if not forward:
-            s2 = leviosam_utils.reverse_complement(s2)
-    else:
-        print(f'Warning : {contig2} not in ref2', file=sys.stderr)
-        return 0
-
-    try:
-        assert (len(s1) == len(s2))
-    except:
-        print('Error: lengths do not match', file=sys.stderr)
-        print(len(s1), len(s2), file=sys.stderr)
-        print(f'{contig1}:{start1}-{end1}', file=sys.stderr)
-        print(f'{contig2}:{start2}-{end2}', file=sys.stderr)
-        exit(1)
-
-    if len(s1) == 0:
-        return 0
-    idy = 0
-    for i_s, s in enumerate(s1):
-        if s == s2[i_s]:
-            idy += 1
-    idy /= len(s1)
-    return idy
-
-
 ''' Write a chain record in the BED format '''
-def write_to_summary(fs_fn, fs, strand, l, hd, source, s_start, dest, d_start):
+def write_to_summary(fs_fn, fs, strand, l, hd, source, s_start, target, t_start):
     if fs_fn:
         if strand == '+':
             print((f'{l}\t{hd:.6f}\t{source}\t{s_start}\t{s_start+l}\t+'
-                   f'\t{dest}\t{d_start}\t{d_start+l}'), file=fs)
+                   f'\t{target}\t{t_start}\t{t_start+l}'), file=fs)
         else:
             print((f'{l}\t{hd:.6f}\t{source}\t{s_start}\t{s_start+l}\t+'
-                   f'\t{dest}\t{d_start-l}\t{d_start}'), file=fs)
+                   f'\t{target}\t{t_start-l}\t{t_start}'), file=fs)
 
 
-def annotate(args):
-    f = open(args.chain, 'r')
-    if args.out == '':
+def annotate(
+    chain: str, out: str, bed_prefix: str, summary: str,
+    s_ref: dict, t_ref: dict
+) -> None:
+    f = open(chain, 'r')
+    if out == '':
         fo = sys.stderr
     else:
-        fo = open(args.out, 'w')
-    if args.bed_prefix != '':
-        f_sbed = open(args.bed_prefix + '-source.bed', 'w')
-        f_dbed = open(args.bed_prefix + '-dest.bed', 'w')
+        fo = open(out, 'w')
+    if bed_prefix != '':
+        f_sbed = open(bed_prefix + '-source.bed', 'w')
+        f_dbed = open(bed_prefix + '-target.bed', 'w')
 
-    ref1 = leviosam_utils.read_fasta(args.ref1)
-    ref2 = leviosam_utils.read_fasta(args.ref2)
-
-    check_hdist = True if (ref1 != {} and ref2 != {}) else False
+    check_hdist = True if (s_ref != {} and t_ref != {}) else False
     if not check_hdist:
         hd = None
-    if args.summary:
+    if summary:
         assert check_hdist == True
-        fs = open(args.summary, 'w')
+        fs = open(summary, 'w')
         # Write header
-        print(f'SIZE\tHDIST\tSOURCE\tS_START\tS_END\tSTRAND\tDEST\tD_START\tD_END', file=fs)
+        print(f'SIZE\tHDIST\tSOURCE\tS_START\tS_END\tSTRAND\tTARGET\tT_START\tT_END', file=fs)
     else:
         fs = None
 
@@ -125,78 +88,78 @@ def annotate(args):
             source = fields[2]
             s_start = int(fields[5])
             s_end = int(fields[6])
-            dest = fields[7]
-            dest_len = int(fields[8])
+            target = fields[7]
+            target_len = int(fields[8])
             strand = fields[9]
             if strand == '+':
-                d_start = int(fields[10])
-                d_end = int(fields[11])
+                t_start = int(fields[10])
+                # t_end = int(fields[11])
             else:
-                d_start = dest_len - int(fields[10])
-                d_end = dest_len - int(fields[11])
+                t_start = target_len - int(fields[10])
+                # t_end = target_len - int(fields[11])
         elif len(fields) == 3:
             l = int(fields[0])
             total_bases += l
             ds = int(fields[1])
             dd = int(fields[2])
             if strand == '+':
-                msg = f'\t{source}:{s_start}-{s_start+l}=>{dest}:{d_start}-{d_start+l} ({d_start-s_start})'
-                if args.bed_prefix != '':
+                msg = f'\t{source}:{s_start}-{s_start+l}=>{target}:{t_start}-{t_start+l} ({t_start-s_start})'
+                if bed_prefix != '':
                     f_sbed.write(f'{source}\t{s_start}\t{s_start+l}\n')
-                    f_dbed.write(f'{dest}\t{d_start}\t{d_start+l}\n')
+                    f_dbed.write(f'{target}\t{t_start}\t{t_start+l}\n')
                 if check_hdist:
-                    hd = compute_hamming_dist(
+                    hd = utils.compute_hamming_dist(
                         True,
-                        ref1, source, s_start, s_start+l,
-                        ref2, dest, d_start, d_start+l)
-                    msg += f'\t{hd}'
+                        s_ref, source, s_start, s_start+l,
+                        t_ref, target, t_start, t_start+l)
+                    msg += f'\t{hd:.2f}'
             else:
-                msg = f'\t{source}:{s_start}-{s_start+l}=>{dest}:{d_start}-{d_start-l} ({d_start-s_start})'
-                if args.bed_prefix != '':
+                msg = f'\t{source}:{s_start}-{s_start+l}=>{target}:{t_start}-{t_start-l} ({t_start-s_start})'
+                if bed_prefix != '':
                     f_sbed.write(f'{source}\t{s_start}\t{s_start+l}\n')
-                    f_dbed.write(f'{dest}\t{d_start-l}\t{d_start}\n')
+                    f_dbed.write(f'{target}\t{t_start-l}\t{t_start}\n')
                 if check_hdist:
-                    hd = compute_hamming_dist(
+                    hd = utils.compute_hamming_dist(
                         False,
-                        ref1, source, s_start, s_start+l,
-                        ref2, dest, d_start-l, d_start)
-                    msg += f'\t{hd}'
+                        s_ref, source, s_start, s_start+l,
+                        t_ref, target, t_start-l, t_start)
+                    msg += f'\t{hd:.2f}'
             print(line + msg, file=fo)
-            write_to_summary(args.summary, fs, strand, l, hd, source, s_start, dest, d_start)
+            write_to_summary(summary, fs, strand, l, hd, source, s_start, target, t_start)
             if strand == '+':
                 s_start += (l + ds)
-                d_start += (l + dd)
+                t_start += (l + dd)
             else:
                 s_start += (l + ds)
-                d_start -= (l + dd)
+                t_start -= (l + dd)
             if check_hdist:
                 total_bases_idy += (l * hd)
         elif len(fields) == 1 and fields[0] != '':
             l = int(fields[0])
             total_bases += l
             if strand == '+':
-                msg = f'\t\t\t{source}:{s_start}-{s_start+l}=>{dest}:{d_start}-{d_start+l}'
-                if args.bed_prefix != '':
+                msg = f'\t\t\t{source}:{s_start}-{s_start+l}=>{target}:{t_start}-{t_start+l}'
+                if bed_prefix != '':
                     f_sbed.write(f'{source}\t{s_start}\t{s_start+l}\n')
-                    f_dbed.write(f'{dest}\t{d_start}\t{d_start+l}\n')
+                    f_dbed.write(f'{target}\t{t_start}\t{t_start+l}\n')
                 if check_hdist:
-                    hd = compute_hamming_dist(
+                    hd = utils.compute_hamming_dist(
                         True,
-                        ref1, source, s_start, s_start+l,
-                        ref2, dest, d_start, d_start+l)
-                    msg += f'\t{hd}'
+                        s_ref, source, s_start, s_start+l,
+                        t_ref, target, t_start, t_start+l)
+                    msg += f'\t{hd:.2f}'
             else:
-                msg = f'\t\t\t{source}:{s_start}-{s_start+l}=>{dest}:{d_start}-{d_start-l}'
-                if args.bed_prefix != '':
+                msg = f'\t\t\t{source}:{s_start}-{s_start+l}=>{target}:{t_start}-{t_start-l}'
+                if bed_prefix != '':
                     f_sbed.write(f'{source}\t{s_start}\t{s_start+l}\n')
-                    f_dbed.write(f'{dest}\t{d_start-l}\t{d_start}\n')
+                    f_dbed.write(f'{target}\t{t_start-l}\t{t_start}\n')
                 if check_hdist:
-                    hd = compute_hamming_dist(
+                    hd = utils.compute_hamming_dist(
                         False,
-                        ref1, source, s_start, s_start+l,
-                        ref2, dest, d_start-l, d_start)
-                    msg += f'\t{hd}'
-            write_to_summary(args.summary, fs, strand, l, hd, source, s_start, dest, d_start)
+                        s_ref, source, s_start, s_start+l,
+                        t_ref, target, t_start-l, t_start)
+                    msg += f'\t{hd:.2f}'
+            write_to_summary(summary, fs, strand, l, hd, source, s_start, target, t_start)
             if check_hdist:
                 total_bases_idy += (l * hd)
             print(line + msg + '\n', file=fo)
@@ -208,12 +171,19 @@ def annotate(args):
 if __name__ == '__main__':
     args = parse_args()
 
-    print('Input chain:', args.chain, file=sys.stderr)
+    print('Input chain             :', args.chain, file=sys.stderr)
     print('Output chain (annotated):', args.out, file=sys.stderr)
 
-    assert (args.ref1 != '' and args.ref2 != '') or (args.ref1 == '' and args.ref2 == '')
-    print('Source reference:', args.ref1, file=sys.stderr)
-    print('Target/Dest reference:', args.ref2, file=sys.stderr)
+    assert (args.s_ref != '' and args.t_ref != '') or (args.s_ref == '' and args.t_ref == '')
+    print('Source reference        :', args.s_ref, file=sys.stderr)
+    print('Target reference        :', args.t_ref, file=sys.stderr)
 
-    annotate(args)
+    s_ref = utils.read_fasta(args.s_ref)
+    t_ref = utils.read_fasta(args.t_ref)
+
+    annotate(
+        chain=args.chain, out=args.out,
+        bed_prefix=args.bed_prefix, summary=args.summary,
+        s_ref=s_ref, t_ref=t_ref
+    )
 
