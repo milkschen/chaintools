@@ -155,12 +155,16 @@ class Chain(ChainConst):
         intervals = sorted(self.tr.all_intervals)
         for i, intvl in enumerate(intervals):
             if i == 0:
-                if intvl[2][1:3] != (0, 0):
-                    msg += (f'{intervals[0].begin - self.sstart - intervals[0].data[1]}\t'
-                            f'{intervals[0].data[1]}\t{intervals[0].data[2]}\n')
+                # If the size of the first interval is not zero
+                if intvl.data[1:3] != (0, 0):
+                    msg += (f'{intvl.begin - self.sstart - intvl.data[1]}\t'
+                            f'{intvl.data[1]}\t{intvl.data[2]}\n')
+                    # msg += (f'{intervals[0].begin - self.sstart - intervals[0].data[1]}\t'
+                    #         f'{intervals[0].data[1]}\t{intervals[0].data[2]}\n')
             else:
                 pintvl = intervals[i-1]
-                msg += (f'{pintvl.end - pintvl.begin}\t{intvl[2][1]}\t{intvl[2][2]}\n')
+                msg += (f'{pintvl.end - pintvl.begin}\t{intvl.data[1]}\t{intvl.data[2]}\n')
+                # msg += (f'{pintvl.end - pintvl.begin}\t{intvl[2][1]}\t{intvl[2][2]}\n')
 
         if intvl.end == self.send:
         # if intvl.end == self.send and self.send + intvl.data[0] == self.tend:
@@ -240,6 +244,60 @@ class Chain(ChainConst):
 
         return True
 
-    def to_paf(self, fn_paf) -> None:
+
+    def to_paf(self) -> None:
+        def cigar_add_indel(msg, intvl) -> str:
+            if intvl.data[1] > intvl.data[2]:
+                msg += f'{intvl.data[1] - intvl.data[2]}I'
+            elif intvl.data[1] < intvl.data[2]:
+                msg += f'{intvl.data[2] - intvl.data[1]}D'
+            return msg
+
+        msg = (f'{self.source}\t{self.slen}\t{self.sstart}\t{self.send}\t{self.tstrand}\t'
+               f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.score}\t'
+               f'{self.score}\t60\tcg:Z:')
+        intervals = sorted(self.tr.all_intervals)
+        for i, intvl in enumerate(intervals):
+            if i == 0:
+                num_m = intvl.begin - self.sstart - intvl.data[1]
+            else:
+                pintvl = intervals[i-1]
+                num_m = pintvl.end - pintvl.begin
+            if num_m > 0:
+                msg += f'{num_m}M'
+            msg = cigar_add_indel(msg, intvl)
+
+            #     # If the size of the first interval is not zero
+            #     if intvl.data[1:3] != (0, 0):
+            #         print(intvl)
+            #         # msg += (f'{intvl.begin - self.sstart - intvl.data[1]}\t'
+            #         #         f'{intvl.data[1]}\t{intvl.data[2]}\n')
+            #         msg += f'{intvl.begin - self.sstart - intvl.data[1]}M'
+            #         msg = cigar_add_indel(msg, intvl)
+            # else:
+            #     pintvl = intervals[i-1]
+            #     num_m = pintvl.end - pintvl.begin
+            #     if num_m > 0:
+            #         msg += f'{num_m}M'
+            #     msg = cigar_add_indel(msg, intvl)
+            #     # msg += (f'{pintvl.end - pintvl.begin}\t{intvl[2][1]}\t{intvl[2][2]}\n')
+
+        if intvl.end == self.send:
+        # if intvl.end == self.send and self.send + intvl.data[0] == self.tend:
+            # msg += (f'{intvl.end - intvl.begin}\n\n')
+            msg += f'{intvl.end - intvl.begin}M'
+        else:
+            # msg += (f'{intvl.end - intvl.begin}\t'
+            #         f'{self.send - intvl.end}\t'
+            #         f'{self.tend - (intvl.end+intvl.data[0])}\n0\n')
+            msg += f'{intvl.end - intvl.begin}M'
+            size = self.send - intvl.end - (self.tend - (intvl.end+intvl.data[0]))
+            if size > 0:
+                msg += f'{size}I'
+            elif size < 0:
+                msg += f'{-size}D'
+
+        msg += '\n'
+        return msg
         pass
 
