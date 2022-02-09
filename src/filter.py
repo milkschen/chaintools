@@ -36,8 +36,8 @@ def filter(fn_chain: str, fn_out: str):
             pass
         elif len(fields) == 1:
             c.add_record_one(fields)
-            chains.append(c)
-            c.print_chain(fo)
+            # chains.append(c)
+            print(c.print_chain(), file=fo)
             # if c.source in tr_dict:
             #     for tr in tr_dict[c.source]:
             #         if not tr.try_merge(c):

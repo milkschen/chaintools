@@ -106,15 +106,15 @@ class Chain(ChainConst):
         self.send = int(fields[self.CHDR_SEND])
         self.sstrand = fields[self.CHDR_SSTRAND]
         # assert fields[self.CHDR_SSTRAND] == '+'
-        if fields[self.CHDR_SSTRAND] != '+':
-            print(fields)
+        # if fields[self.CHDR_SSTRAND] != '+':
+        #     print(fields)
 
         self.target = fields[self.CHDR_TARGET]
         self.tlen = int(fields[self.CHDR_TLEN])
         self.tstrand = fields[self.CHDR_TSTRAND]
         # assert fields[self.CHDR_TSTRAND] == '+'
-        if fields[self.CHDR_TSTRAND] != '+':
-            print(fields)
+        # if fields[self.CHDR_TSTRAND] != '+':
+        #     print(fields)
         self.tstart = int(fields[self.CHDR_TSTART])
         if self.tstrand == '+':
             self.toffset = self.tstart
@@ -147,37 +147,29 @@ class Chain(ChainConst):
             self.tr[self.soffset : self.soffset + segment_size] = \
                 (self.toffset-self.soffset, self.ds, self.dt)
 
-    def print_chain(self, fout=sys.stdout):
-        print((f'chain {self.score} '
+    def print_chain(self) -> str:
+        msg = (f'chain {self.score} '
                f'{self.source} {self.slen} {self.sstrand} {self.sstart} {self.send} '
                f'{self.target} {self.tlen} {self.tstrand} {self.tstart} {self.tend} '
-               f'{self.id}'),
-              file=fout)
+               f'{self.id}\n')
         intervals = sorted(self.tr.all_intervals)
         for i, intvl in enumerate(intervals):
             if i == 0:
                 if intvl[2][1:3] != (0, 0):
-                    print(intervals[0].begin - self.sstart - intervals[0].data[1],
-                          intervals[0].data[1], intervals[0].data[2],
-                          file=fout, sep='\t')
+                    msg += (f'{intervals[0].begin - self.sstart - intervals[0].data[1]}\t'
+                            f'{intervals[0].data[1]}\t{intervals[0].data[2]}\n')
             else:
                 pintvl = intervals[i-1]
-                print(pintvl.end - pintvl.begin,
-                      intvl[2][1], intvl[2][2], file=fout, sep='\t')
+                msg += (f'{pintvl.end - pintvl.begin}\t{intvl[2][1]}\t{intvl[2][2]}\n')
 
         if intvl.end == self.send:
         # if intvl.end == self.send and self.send + intvl.data[0] == self.tend:
-            # print(intvl.end, self.send, intvl.end, intvl.data[0], self.tend)
-            print(intvl.end - intvl.begin, file=fout, sep='\t')
-            print('', file=fout)
+            msg += (f'{intvl.end - intvl.begin}\n\n')
         else:
-            print(intvl.end, self.send, intvl.end, intvl.data[0], self.tend)
-            print(intvl)
-            print(self.send + intvl.data[0] - intvl[2][1])
-            print(self.tlen - self.tend)
-            print(intvl.end - intvl.begin, self.send - intvl.end,
-                  self.tend - (intvl.end+intvl.data[0]), file=fout, sep='\t')
-            print('0\n', file=fout)
+            msg += (f'{intvl.end - intvl.begin}\t'
+                    f'{self.send - intvl.end}\t'
+                    f'{self.tend - (intvl.end+intvl.data[0])}\n0\n')
+        return msg
 
     def try_merge(self, c):
         # print(len(list(self.tr)))
@@ -248,4 +240,6 @@ class Chain(ChainConst):
 
         return True
 
+    def to_paf(self, fn_paf) -> None:
+        pass
 
