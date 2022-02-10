@@ -238,9 +238,10 @@ class Chain(ChainConst):
     def to_paf(self) -> None:
         def update_cigar(msg, num_m, ds, dt) -> str:
             if ds != 0 and dt != 0:
-                num_m += min(ds, dt)
-                ds -= num_m
-                dt -= num_m
+                shared = min(ds, dt)
+                num_m += shared
+                ds -= shared
+                dt -= shared
             if num_m > 0:
                 msg += f'{num_m}M'
             if max(ds, dt) > 0:
@@ -250,9 +251,14 @@ class Chain(ChainConst):
                     msg += f'{dt - ds}D'
             return msg
 
-        msg = (f'{self.source}\t{self.slen}\t{self.sstart}\t{self.send}\t{self.tstrand}\t'
-               f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.score}\t'
-               f'{self.score}\t60\tcg:Z:')
+        if self.tstrand == '+':
+            msg = (f'{self.source}\t{self.slen}\t{self.sstart}\t{self.send}\t{self.tstrand}\t'
+                   f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.score}\t'
+                   f'{self.score}\t60\tcg:Z:')
+        else:
+            msg = (f'{self.source}\t{self.slen}\t{self.sstart}\t{self.send}\t{self.tstrand}\t'
+                   f'{self.target}\t{self.tlen}\t{self.tlen - self.tend}\t{self.tlen - self.tstart}\t{self.score}\t'
+                   f'{self.score}\t60\tcg:Z:')
         intervals = sorted(self.tr.all_intervals)
         for i, intvl in enumerate(intervals):
             if i == 0:
