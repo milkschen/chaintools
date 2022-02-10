@@ -3,7 +3,7 @@ Utils for chain-related processing
 
 Nae-Chyun Chen
 Johns Hopkins University
-2021
+2021-2022
 '''
 import argparse
 import copy
@@ -105,16 +105,9 @@ class Chain(ChainConst):
         self.soffset = self.sstart
         self.send = int(fields[self.CHDR_SEND])
         self.sstrand = fields[self.CHDR_SSTRAND]
-        # assert fields[self.CHDR_SSTRAND] == '+'
-        # if fields[self.CHDR_SSTRAND] != '+':
-        #     print(fields)
-
         self.target = fields[self.CHDR_TARGET]
         self.tlen = int(fields[self.CHDR_TLEN])
         self.tstrand = fields[self.CHDR_TSTRAND]
-        # assert fields[self.CHDR_TSTRAND] == '+'
-        # if fields[self.CHDR_TSTRAND] != '+':
-        #     print(fields)
         self.tstart = int(fields[self.CHDR_TSTART])
         if self.tstrand == '+':
             self.toffset = self.tstart
@@ -159,12 +152,9 @@ class Chain(ChainConst):
                 if intvl.data[1:3] != (0, 0):
                     msg += (f'{intvl.begin - self.sstart - intvl.data[1]}\t'
                             f'{intvl.data[1]}\t{intvl.data[2]}\n')
-                    # msg += (f'{intervals[0].begin - self.sstart - intervals[0].data[1]}\t'
-                    #         f'{intervals[0].data[1]}\t{intervals[0].data[2]}\n')
             else:
                 pintvl = intervals[i-1]
                 msg += (f'{pintvl.end - pintvl.begin}\t{intvl.data[1]}\t{intvl.data[2]}\n')
-                # msg += (f'{pintvl.end - pintvl.begin}\t{intvl[2][1]}\t{intvl[2][2]}\n')
 
         if intvl.end == self.send:
         # if intvl.end == self.send and self.send + intvl.data[0] == self.tend:
@@ -246,11 +236,18 @@ class Chain(ChainConst):
 
 
     def to_paf(self) -> None:
-        def cigar_add_indel(msg, ds, dt) -> str:
-            if ds > dt:
-                msg += f'{ds - dt}I'
-            elif ds < dt:
-                msg += f'{dt - ds}D'
+        def update_cigar(msg, num_m, ds, dt) -> str:
+            if ds != 0 and dt != 0:
+                num_m += min(ds, dt)
+                ds -= num_m
+                dt -= num_m
+            if num_m > 0:
+                msg += f'{num_m}M'
+            if max(ds, dt) > 0:
+                if ds > dt:
+                    msg += f'{ds - dt}I'
+                elif ds < dt:
+                    msg += f'{dt - ds}D'
             return msg
 
         msg = (f'{self.source}\t{self.slen}\t{self.sstart}\t{self.send}\t{self.tstrand}\t'
@@ -265,25 +262,15 @@ class Chain(ChainConst):
                 num_m = pintvl.end - pintvl.begin
             ds = intvl.data[1]
             dt = intvl.data[2]
-            if ds != 0 and dt != 0:
-                num_m += min(ds, dt)
-                ds -= num_m
-                dt -= num_m
-            if num_m > 0:
-                msg += f'{num_m}M'
-            if max(ds, dt) > 0:
-                msg = cigar_add_indel(msg, ds, dt)
+            msg = update_cigar(msg, num_m, ds, dt)
 
         if intvl.end == self.send:
             msg += f'{intvl.end - intvl.begin}M'
         else:
-            msg += f'{intvl.end - intvl.begin}M'
-            size = self.send - intvl.end - (self.tend - (intvl.end+intvl.data[0]))
-            if size > 0:
-                msg += f'{size}I'
-            elif size < 0:
-                msg += f'{-size}D'
+            num_m = intvl.end - intvl.begin
+            ds = self.send - intvl.end
+            dt = self.tend - (intvl.end+intvl.data[0])
+            msg = update_cigar(msg, num_m, ds, dt)
 
         return msg
-        pass
 
