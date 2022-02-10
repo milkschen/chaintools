@@ -246,11 +246,11 @@ class Chain(ChainConst):
 
 
     def to_paf(self) -> None:
-        def cigar_add_indel(msg, intvl) -> str:
-            if intvl.data[1] > intvl.data[2]:
-                msg += f'{intvl.data[1] - intvl.data[2]}I'
-            elif intvl.data[1] < intvl.data[2]:
-                msg += f'{intvl.data[2] - intvl.data[1]}D'
+        def cigar_add_indel(msg, ds, dt) -> str:
+            if ds > dt:
+                msg += f'{ds - dt}I'
+            elif ds < dt:
+                msg += f'{dt - ds}D'
             return msg
 
         msg = (f'{self.source}\t{self.slen}\t{self.sstart}\t{self.send}\t{self.tstrand}\t'
@@ -263,33 +263,20 @@ class Chain(ChainConst):
             else:
                 pintvl = intervals[i-1]
                 num_m = pintvl.end - pintvl.begin
+            ds = intvl.data[1]
+            dt = intvl.data[2]
+            if ds != 0 and dt != 0:
+                num_m += min(ds, dt)
+                ds -= num_m
+                dt -= num_m
             if num_m > 0:
                 msg += f'{num_m}M'
-            msg = cigar_add_indel(msg, intvl)
-
-            #     # If the size of the first interval is not zero
-            #     if intvl.data[1:3] != (0, 0):
-            #         print(intvl)
-            #         # msg += (f'{intvl.begin - self.sstart - intvl.data[1]}\t'
-            #         #         f'{intvl.data[1]}\t{intvl.data[2]}\n')
-            #         msg += f'{intvl.begin - self.sstart - intvl.data[1]}M'
-            #         msg = cigar_add_indel(msg, intvl)
-            # else:
-            #     pintvl = intervals[i-1]
-            #     num_m = pintvl.end - pintvl.begin
-            #     if num_m > 0:
-            #         msg += f'{num_m}M'
-            #     msg = cigar_add_indel(msg, intvl)
-            #     # msg += (f'{pintvl.end - pintvl.begin}\t{intvl[2][1]}\t{intvl[2][2]}\n')
+            if max(ds, dt) > 0:
+                msg = cigar_add_indel(msg, ds, dt)
 
         if intvl.end == self.send:
-        # if intvl.end == self.send and self.send + intvl.data[0] == self.tend:
-            # msg += (f'{intvl.end - intvl.begin}\n\n')
             msg += f'{intvl.end - intvl.begin}M'
         else:
-            # msg += (f'{intvl.end - intvl.begin}\t'
-            #         f'{self.send - intvl.end}\t'
-            #         f'{self.tend - (intvl.end+intvl.data[0])}\n0\n')
             msg += f'{intvl.end - intvl.begin}M'
             size = self.send - intvl.end - (self.tend - (intvl.end+intvl.data[0]))
             if size > 0:
@@ -297,7 +284,6 @@ class Chain(ChainConst):
             elif size < 0:
                 msg += f'{-size}D'
 
-        msg += '\n'
         return msg
         pass
 
