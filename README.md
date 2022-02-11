@@ -1,5 +1,7 @@
 # chaintools: utilities for the genomic chain format
 
+This toolkit provides utilities to process whole-genome maps in the ([chain format](https://genome.ucsc.edu/goldenPath/help/chain.html)).
+
 ## Usage
 
 ### Annotate
