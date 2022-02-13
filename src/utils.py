@@ -22,6 +22,10 @@ def read_fasta(ref_fn: str) -> dict:
             ref[r] = f[r].upper()
     return ref
 
+def fasta_reader(ref_fn: str):
+    f = pysam.FastaFile(ref_fn)
+    return f
+
 
 def reverse_complement(seq: str) -> str:
     d = {'A': 'T', 'a': 'T', 'C': 'G', 'c': 'G',
@@ -73,6 +77,16 @@ def compute_hamming_dist(
             idy += 1
     idy /= len(s1)
     return idy
+
+def get_source_entries(fn: str)->dict:
+    CC = ChainConst()
+    dict_contig_length = {}
+    with open(fn, 'r') as f:
+        for line in f:
+            line = line.split()
+            if len(line) == 13:
+                dict_contig_length[line[CC.CHDR_SOURCE]] = line[CC.CHDR_SLEN]
+    return dict_contig_length
 
 
 class ChainConst():
@@ -279,4 +293,84 @@ class Chain(ChainConst):
             msg = update_cigar(msg, num_m, ds, dt)
 
         return msg
+    
+    def to_vcf(self, sourceref, targetref) -> None:
+        msg = ''
+        intervals = sorted(self.tr.all_intervals)
+        for i, intvl in enumerate(intervals):
+            # deal with indels first, because they are to the left of the matching segment:
+            if i > 0:
+                # calculate zero-based, half-open ref and alt start/end (subtracting one to add base prior to event)
+                if self.strand == "+":
+                    alignseq_tend = intvl.begin + intvl.data[0]
+                    alignseq_tstart = intvl.begin + intvl.data[0] - intvl.data[2] - 1
+                    alignseq_t = targetref.fetch(reference=self.target, start=alignseq_tstart, end=alignseq_tend).upper()
+                    tpos = alignseq_tstart + 1
+                else:
+                    alignseq_tstart = intvl.begin + intvl.data[0]
+                    alignseq_tend = intvl.begin + intvl.data[0] + intvl.data[2] + 1
+                    alignseq_t = targetref.fetch(reference=self.target, start=alignseq_tstart, end=alignseq_tend).upper()
+                    alignseq_t = reverse_complement(alignseq_t)
+                    tpos = alignseq_tend
 
+                # end position of indel allele is position to left of matching segment's start, start has a base appended to the left:
+                alignseq_send = intvl.begin
+                alignseq_sstart = intvl.begin - intvl.data[1] - 1
+                alignseq_s = sourceref.fetch(reference=self.source, start=alignseq_sstart, end=alignseq_send).upper()
+                spos = alignseq_sstart + 1
+
+                msg += (f'{self.source}\t{spos}\t.\t{alignseq_s}\t{alignseq_t}\t.\tAUTO\tALN_SCORE={self.score};' +
+                        f'ALN_TARGET={self.target};ALN_TPOS={tpos};ALN_STRAND={self.strand};ALN_DT={intvl.data[2]};ALN_DQ={intvl.data[1]}\n')
+
+            # now print SNPs within matched segment:
+
+            # zero-based, half-open start/end of matched segment
+            if self.strand == "+":
+                alignseq_tstart = intvl.begin + intvl.data[0]
+                alignseq_tend = intvl.end + intvl.data[0]
+                #alignseq_t = targetref[self.target][alignseq_tstart:alignseq_tend]
+                alignseq_t = targetref.fetch(reference=self.target, start=alignseq_tstart, end=alignseq_tend).upper()
+            else:
+                alignseq_tend = intvl.begin + intvl.data[0]
+                alignseq_tstart = alignseq_tend - (intvl.end - intvl.begin)
+                #alignseq_t = targetref[self.target][alignseq_tstart:alignseq_tend]
+                alignseq_t = targetref.fetch(reference=self.target, start=alignseq_tstart, end=alignseq_tend).upper()
+                alignseq_t = reverse_complement(alignseq_t)
+
+            alignseq_sstart = intvl.begin
+            alignseq_send = intvl.end
+            #alignseq_s = sourceref[self.source][alignseq_sstart:alignseq_send]
+            alignseq_s = sourceref.fetch(reference=self.source, start=alignseq_sstart, end=alignseq_send).upper()
+
+            segmentlength = intvl.end - intvl.begin
+
+            #print(f'Tstart {alignseq_tstart} Tend {alignseq_tend} Sstart {alignseq_sstart} Send {alignseq_send} Intvl {intvl.begin}:{intvl.end} Toffset {intvl.data[1]} Seglength {segmentlength}')
+
+            for i in range(segmentlength):
+                if alignseq_t[i] != alignseq_s[i]:
+                    # convert to one-based start position:
+                    spos = alignseq_sstart + i + 1
+                    if self.strand == "+":
+                        tpos = alignseq_tstart + i + 1
+                    else:
+                        tpos = alignseq_tend - i
+                    msg += (f'{self.source}\t{spos}\t.\t{alignseq_s[i]}\t{alignseq_t[i]}\t.\tAUTO\tALN_SCORE={self.score};ALN_TARGET={self.target};ALN_TPOS={tpos};ALN_STRAND={self.strand}\n')
+
+        return msg
+
+def vcf_header(dict_contig_length) -> str:
+    header = ''
+    header += (f'##fileformat=VCFv4.3\n')
+    header += (f'##FILTER=<ID=AUTO,Description="Generated automatically.">\n')
+
+    for contig in sorted(dict_contig_length, key=lambda i: int(dict_contig_length[i]), reverse=True):
+        header += (f'##contig=<ID={contig}, length={dict_contig_length[contig]}>\n')
+    header += (f'##INFO=<ID=ALN_SCORE,Number=A,Type=Integer,Description="Score of chain alignment.">\n')
+    header += (f'##INFO=<ID=ALN_TARGET,Number=A,Type=String,Description="Variant target contig.">\n')
+    header += (f'##INFO=<ID=ALN_TPOS,Number=A,Type=Integer,Description="Variant position on target contig.">\n')
+    header += (f'##INFO=<ID=ALN_STRAND,Number=A,Type=String,Description="Strand of chain alignment.">\n')
+    header += (f'##INFO=<ID=ALN_DT,Number=A,Type=Integer,Description="Length of gap on SEQ_T.">\n')
+    header += (f'##INFO=<ID=ALN_DQ,Number=A,Type=Integer,Description="Length of gap on SEQ_Q.">\n')
+    header += (f'#CHROM       POS     ID      REF     ALT     QUAL    FILTER  INFO\n')
+
+    return header
