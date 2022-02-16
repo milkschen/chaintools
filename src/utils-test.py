@@ -1,9 +1,13 @@
 '''
-Tests for levioSAM utilities
+Tests for chaintools utilities
 
 Nae-Chyun Chen
 Johns Hopkins University
-2021
+
+Nancy Fisher Hansen
+NIH/NHGRI
+
+2021-2022
 '''
 import unittest
 import utils
