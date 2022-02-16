@@ -43,7 +43,6 @@ def write_to_sam(fn_chain: str, fn_sam: str, fn_sourcefasta: str, fn_targetfasta
             c = utils.Chain(fields)
         elif len(fields) == 3:
             c.add_record_three(fields)
-            pass
         elif len(fields) == 1:
             c.add_record_one(fields)
             print(c.to_sam(sourceref, targetref), file=fo, end='')
