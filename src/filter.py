@@ -1,5 +1,4 @@
 import argparse
-import intervaltree
 import utils
 import sys
 
@@ -29,6 +28,30 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+
+def filter_core(
+    c: utils.Chain, segment_size: int, unique: bool,
+    stree_dict: dict, ttree_dict: dict
+) -> list:
+    filter_size = False
+    filter_overlap_source = False
+    filter_overlap_target = False
+
+    # Check segment size
+    if c.seglen < segment_size:
+        filter_size = True
+
+    # Check overlap
+    if unique:
+        # If two source trees intersect
+        if (c.source in stree_dict) and (len(c.stree & stree_dict[c.source]) > 0):
+            filter_overlap_source = True
+        # If two target trees intersect
+        if (c.target in ttree_dict) and (len(c.ttree & ttree_dict[c.target]) > 0):
+            filter_overlap_target = True
+    return filter_size, filter_overlap_source, filter_overlap_target
+
+
 def filter(
     fn_chain: str, fn_out: str, unique: bool, segment_size: int,
     fn_overlapped_chain: str=''
@@ -55,32 +78,24 @@ def filter(
         elif len(fields) == 1:
             c.add_record_one(fields)
             
-            # Filter by segment size
-            if c.seglen < segment_size:
-                continue
+            filter_size, filter_overlap_source, filter_overlap_target = filter_core(
+                c=c, segment_size=segment_size, unique=unique,
+                stree_dict=stree_dict, ttree_dict=ttree_dict)
 
-            print(
-                f'score={c.score}\tsource={c.source}:{c.sstart}-{c.send}\ttarget={c.target}:{c.tstart}-{c.tend}\t{c.strand}',
-                file=sys.stderr)
+            msg = f'score={c.score}\tsource={c.source}:{c.sstart}-{c.send}\ttarget={c.target}:{c.tstart}-{c.tend}\t{c.strand}\t'
 
-            s_overlap = False
-            t_overlap = False
-            if unique:
-                # If two strees intersect
-                if (c.source in stree_dict) and (len(c.stree & stree_dict[c.source]) > 0):
-                    s_overlap = True
-                    print('overlap (source)')
-                    if fn_overlapped_chain:
-                        print(c.print_chain(), file=foc)
-                if (c.target in ttree_dict) and (len(c.ttree & ttree_dict[c.target]) > 0):
-                    t_overlap = True
-                    print('overlap (target)')
-                    # print(c.ttree & ttree_dict[c.target])
-                    if fn_overlapped_chain:
-                        print(c.print_chain(), file=foc)
+            if filter_size:
+                msg += 'SIZE'
+            if filter_overlap_source and fn_overlapped_chain:
+                msg += 'OVERLAP_SOURCE'
+                print(c.print_chain(), file=foc)
+            if filter_overlap_target and fn_overlapped_chain:
+                msg += 'OVERLAP_TARGET'
+                print(c.print_chain(), file=foc)
             
-            # If no overlap
-            if (not s_overlap) and (not t_overlap):
+            # if pass
+            if not any([filter_size, filter_overlap_source, filter_overlap_target]):
+                msg += 'PASS'
                 # Update source tree dict
                 if c.source in stree_dict:
                     stree_dict[c.source] = stree_dict[c.source] | c.stree
@@ -93,6 +108,7 @@ def filter(
                     ttree_dict[c.target] = c.ttree
                 print(c.print_chain(), file=fo)
 
+            print(msg, file=sys.stderr)
             c = None
 
 
