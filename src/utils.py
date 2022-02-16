@@ -187,11 +187,11 @@ class Chain(ChainConst):
 
         if intvl.end == self.send:
         # if intvl.end == self.send and self.send + intvl.data[0] == self.tend:
-            msg += (f'{intvl.end - intvl.begin}\n\n')
+            msg += (f'{intvl.end - intvl.begin}\n')
         else:
             msg += (f'{intvl.end - intvl.begin}\t'
                     f'{self.send - intvl.end}\t'
-                    f'{self.tend - (intvl.end+intvl.data[0])}\n0\n')
+                    f'{self.tend - (intvl.end+intvl.data[0])}\n0')
         return msg
 
     def try_merge(self, c):
