@@ -1,13 +1,20 @@
 '''
-Tests for levioSAM utilities
+Tests for chaintools utilities
 
 Nae-Chyun Chen
 Johns Hopkins University
-2021
+
+Nancy Fisher Hansen
+NIH/NHGRI
+
+2021-2022
 '''
+import filter
+import intervaltree
 import unittest
-import subprocess
 import utils
+import sys
+
 
 class TestReadingChain(unittest.TestCase):
     def read_and_compare(self, fn):
@@ -23,21 +30,23 @@ class TestReadingChain(unittest.TestCase):
                     c = utils.Chain(fields)
                 elif len(fields) == 3:
                     c.add_record_three(fields)
-                    pass
                 elif len(fields) == 1:
                     c.add_record_one(fields)
                     output_txt += c.print_chain()
+                    output_txt += '\n'
                     c = None
         
-        # A tab and a space are considered indifferent
+        # A tab and a space are considered to be indifferent
         input_txt = input_txt.replace('\t', ' ').rstrip()
         output_txt = output_txt.replace('\t', ' ').rstrip()
         ii = input_txt.split('\n')
         oo = output_txt.split('\n')
         if len(ii) != len(oo):
+            print(f'[E::read_and_compare] Lengths differ ({len(ii)} vs. {len(oo)})', file=sys.stderr)
             return False
         for i in range(min(len(ii), len(oo))):
             if ii[i] != oo[i]:
+                print(f'[E::read_and_compare] {ii[i]} != {oo[i]}', file=sys.stderr)
                 return False
         return input_txt == output_txt
 
@@ -61,6 +70,7 @@ class TestReadingChain(unittest.TestCase):
         self.assertTrue(self.read_and_compare(fn),
                         f'Failed when reading {fn}')
 
+
 class TestGenerateVcf(unittest.TestCase):
     def generate_and_check(self, chainfn, sourcefn, targetfn, vcffn):
         output_txt = ''
@@ -76,7 +86,6 @@ class TestGenerateVcf(unittest.TestCase):
                     c = utils.Chain(fields)
                 elif len(fields) == 3:
                     c.add_record_three(fields)
-                    pass
                 elif len(fields) == 1:
                     c.add_record_one(fields)
                     output_txt += c.to_vcf(sourceref, targetref)
@@ -97,6 +106,7 @@ class TestGenerateVcf(unittest.TestCase):
         self.assertTrue(self.generate_and_check(fn, sourcefn, targetfn, vcffn),
                         f'Failed when generating vcf from {fn}')
 
+
 class TestGenerateSAM(unittest.TestCase):
     def generate_and_check(self, chainfn, sourcefn, targetfn, samfn):
         output_txt = ''
@@ -112,7 +122,6 @@ class TestGenerateSAM(unittest.TestCase):
                     c = utils.Chain(fields)
                 elif len(fields) == 3:
                     c.add_record_three(fields)
-                    pass
                 elif len(fields) == 1:
                     c.add_record_one(fields)
                     output_txt += c.to_sam(sourceref, targetref)
@@ -132,6 +141,72 @@ class TestGenerateSAM(unittest.TestCase):
         
         self.assertTrue(self.generate_and_check(fn, sourcefn, targetfn, samfn),
                         f'Failed when generating sam from {fn}')
+
+
+class TestFilter(unittest.TestCase):
+    def read_filter_compare(
+        self, fn: str, segment_size: int, unique: bool,
+        stree_dict: dict, ttree_dict: dict
+    ) -> list:
+        filter_results = []
+        with open(fn, 'r') as f:
+            for line in f:
+                fields = line.split()
+                if len(fields) == 0:
+                    continue
+                elif line.startswith('chain'):
+                    c = utils.Chain(fields)
+                elif len(fields) == 3:
+                    c.add_record_three(fields)
+                elif len(fields) == 1:
+                    c.add_record_one(fields)
+                    filter_results.append(filter.filter_core(
+                        c=c, segment_size=segment_size, unique=unique,
+                        stree_dict=stree_dict, ttree_dict=ttree_dict))
+                    c = None
+        return filter_results
+
+    def test_read_forward_no_filter(self):
+        fn = 'testdata/forward.chain'
+        filter_results = self.read_filter_compare(
+            fn=fn, segment_size=0, unique=False,
+            stree_dict={}, ttree_dict={})
+        self.assertTrue(not any(filter_results[0]), f'Failed when reading {fn} [0]')
+        self.assertTrue(not any(filter_results[1]), f'Failed when reading {fn} [1]')
+    
+    def test_read_forward_filter_size(self):
+        fn = 'testdata/forward.chain'
+        filter_results = self.read_filter_compare(
+            fn=fn, segment_size=360000, unique=False,
+            stree_dict={}, ttree_dict={})
+        self.assertTrue(filter_results[0] == (True, False, False), 
+                        f'Failed when reading {fn} [0]')
+        self.assertTrue(not any(filter_results[1]), f'Failed when reading {fn} [1]')
+    
+    def test_read_forward_filter_unique_source(self):
+        fn = 'testdata/forward.chain'
+        stree_dict = {'chr7': intervaltree.IntervalTree(),
+                      'chr19': intervaltree.IntervalTree()}
+        stree_dict['chr7'][60195160: 60195161] = 1
+        filter_results = self.read_filter_compare(
+            fn=fn, segment_size=0, unique=True,
+            stree_dict=stree_dict, ttree_dict={})
+        self.assertTrue(filter_results[0] == (False, True, False), 
+                        f'Failed when reading {fn} [0]')
+        self.assertTrue(not any(filter_results[1]), f'Failed when reading {fn} [1]')
+    
+    def test_read_forward_filter_unique_target(self):
+        fn = 'testdata/forward.chain'
+        ttree_dict = {'chr7': intervaltree.IntervalTree(),
+                      'chr5': intervaltree.IntervalTree()}
+        ttree_dict['chr5'][50042645: 50042646] = 1
+        filter_results = self.read_filter_compare(
+            fn=fn, segment_size=0, unique=True,
+            stree_dict={}, ttree_dict=ttree_dict)
+        self.assertTrue(not any(filter_results[0]), f'Failed when reading {fn} [0]')
+        self.assertTrue(filter_results[1] == (False, False, True), 
+                        f'Failed when reading {fn} [1]')
+
 
 if __name__ == '__main__':
     unittest.main()

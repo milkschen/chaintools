@@ -109,7 +109,8 @@ class ChainConst():
 
 class Chain(ChainConst):
     def __init__(self, fields=None):
-        self.tr = intervaltree.IntervalTree()
+        self.stree = intervaltree.IntervalTree()
+        self.ttree = intervaltree.IntervalTree()
         if not fields:
             return
         self.score = int(fields[self.CHDR_SCORE])
@@ -135,14 +136,22 @@ class Chain(ChainConst):
         self.ds = 0
         self.dt = 0
 
+        self.seglen = 0
+
     def add_record_three(self, fields):
         segment_size = int(fields[self.C_SIZE])
         if segment_size > 0:
-            self.tr[self.soffset : self.soffset + segment_size] = \
+            self.stree[self.soffset : self.soffset + segment_size] = \
                 (self.toffset - self.soffset, self.ds, self.dt, False)
+            if self.strand == '+':
+                self.ttree[self.toffset: self.toffset + segment_size] = 1
+            else:
+                self.ttree[self.toffset - segment_size: self.toffset] = 1
+
         self.ds = int(fields[self.C_DS])
         self.dt = int(fields[self.C_DT])
         self.soffset += (segment_size + self.ds)
+        self.seglen += segment_size
         if self.strand == '+':
             self.toffset += (segment_size + self.dt)
         else:
@@ -150,16 +159,21 @@ class Chain(ChainConst):
 
     def add_record_one(self, fields):
         segment_size = int(fields[self.C_SIZE])
+        self.seglen += segment_size
         if segment_size > 0:
-            self.tr[self.soffset : self.soffset + segment_size] = \
+            self.stree[self.soffset : self.soffset + segment_size] = \
                 (self.toffset-self.soffset, self.ds, self.dt)
+            if self.strand == '+':
+                self.ttree[self.toffset: self.toffset + segment_size] = 1
+            else:
+                self.ttree[self.toffset - segment_size: self.toffset] = 1
 
     def print_chain(self) -> str:
         msg = (f'chain {self.score} '
                f'{self.source} {self.slen} {self.sstrand} {self.sstart} {self.send} '
                f'{self.target} {self.tlen} {self.tstrand} {self.tstart} {self.tend} '
                f'{self.id}\n')
-        intervals = sorted(self.tr.all_intervals)
+        intervals = sorted(self.stree.all_intervals)
         for i, intvl in enumerate(intervals):
             if i == 0:
                 # If the size of the first interval is not zero
@@ -172,22 +186,22 @@ class Chain(ChainConst):
 
         if intvl.end == self.send:
         # if intvl.end == self.send and self.send + intvl.data[0] == self.tend:
-            msg += (f'{intvl.end - intvl.begin}\n\n')
+            msg += (f'{intvl.end - intvl.begin}\n')
         else:
             msg += (f'{intvl.end - intvl.begin}\t'
                     f'{self.send - intvl.end}\t'
-                    f'{self.tend - (intvl.end+intvl.data[0])}\n0\n')
+                    f'{self.tend - (intvl.end+intvl.data[0])}\n0')
         return msg
 
     def try_merge(self, c):
-        # print(len(list(self.tr)))
-        # print(self.tr.items())
-        # print(c.tr.items())
+        # print(len(list(self.stree)))
+        # print(self.stree.items())
+        # print(c.stree.items())
 
-        self_sorted_intervals = sorted(self.tr.all_intervals)
-        c_sorted_intervals = sorted(c.tr.all_intervals)
+        self_sorted_intervals = sorted(self.stree.all_intervals)
+        c_sorted_intervals = sorted(c.stree.all_intervals)
         
-        clone_tr = self.tr.copy()
+        clone_tr = self.stree.copy()
         for c_intvl in c_sorted_intervals:
             for i_s, s_intvl in enumerate(self_sorted_intervals):
                 if c_intvl.begin > s_intvl.end or c_intvl.end < s_intvl.begin:
@@ -204,7 +218,7 @@ class Chain(ChainConst):
                             data = (s_intvl.data[0], s_intvl.data[1]-diff, s_intvl.data[2]-diff)
                             updated_s_intvl = intervaltree.Interval(start, s_intvl.end, data)
                             clone_tr.remove(s_intvl)
-                            c.tr.remove(c_intvl)
+                            c.stree.remove(c_intvl)
                             clone_tr.add(updated_s_intvl)
                         elif c_intvl.begin > s_intvl.begin and c_intvl.end > s_intvl.end:
                             # Extend from end
@@ -213,7 +227,7 @@ class Chain(ChainConst):
                             # print(c_intvl)
                             # print(s_intvl)
                             clone_tr.remove(s_intvl)
-                            c.tr.remove(c_intvl)
+                            c.stree.remove(c_intvl)
                             end = max(s_intvl.end, c_intvl.end)
                             diff = c_intvl.end - s_intvl.end
                             clone_tr.add(intervaltree.Interval(s_intvl.begin, end, s_intvl[2]))
@@ -232,10 +246,10 @@ class Chain(ChainConst):
                             return False
                     else:
                         return False
-        self.tr = clone_tr
+        self.stree = clone_tr
         # print('\nmerged:')
-        # print(self.tr.items())
-        sorted_intervals = sorted(self.tr.all_intervals)
+        # print(self.stree.items())
+        sorted_intervals = sorted(self.stree.all_intervals)
 
         # Update chain info
         self.score += c.score
@@ -273,7 +287,7 @@ class Chain(ChainConst):
             msg = (f'{self.source}\t{self.slen}\t{self.sstart}\t{self.send}\t{self.tstrand}\t'
                    f'{self.target}\t{self.tlen}\t{self.tlen - self.tend}\t{self.tlen - self.tstart}\t{self.score}\t'
                    f'{self.score}\t60\tcg:Z:')
-        intervals = sorted(self.tr.all_intervals)
+        intervals = sorted(self.stree.all_intervals)
         for i, intvl in enumerate(intervals):
             if i == 0:
                 num_m = intvl.begin - self.sstart - intvl.data[1]
@@ -296,7 +310,7 @@ class Chain(ChainConst):
     
     def to_vcf(self, sourceref, targetref) -> None:
         msg = ''
-        intervals = sorted(self.tr.all_intervals)
+        intervals = sorted(self.stree.all_intervals)
         for i, intvl in enumerate(intervals):
             # deal with indels first, because they are to the left of the matching segment:
             if i > 0:
@@ -382,7 +396,7 @@ class Chain(ChainConst):
             targetendpos = targetstartpos
             flag = 16
 
-        intervals = sorted(self.tr.all_intervals)
+        intervals = sorted(self.stree.all_intervals)
         for i, intvl in enumerate(intervals):
             # deal with indels first, because they are to the left of the matching segment:
             if i > 0:
