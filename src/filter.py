@@ -44,11 +44,17 @@ def filter_core(
     # Check overlap
     if unique:
         # If two source trees intersect
-        if (c.source in stree_dict) and (len(c.stree & stree_dict[c.source]) > 0):
-            filter_overlap_source = True
+        if c.source in stree_dict:
+            for s_intvl in c.stree:
+                if stree_dict[c.source].overlaps(s_intvl):
+                    filter_overlap_source = True
+                    break
         # If two target trees intersect
-        if (c.target in ttree_dict) and (len(c.ttree & ttree_dict[c.target]) > 0):
-            filter_overlap_target = True
+        if c.target in ttree_dict:
+            for t_intvl in c.ttree:
+                if ttree_dict[c.target].overlaps(t_intvl):
+                    filter_overlap_target = True
+                    break
     return filter_size, filter_overlap_source, filter_overlap_target
 
 
@@ -86,10 +92,10 @@ def filter(
 
             if filter_size:
                 msg += 'SIZE'
-            if filter_overlap_source and fn_overlapped_chain:
+            elif filter_overlap_source and fn_overlapped_chain:
                 msg += 'OVERLAP_SOURCE'
                 print(c.print_chain(), file=foc)
-            if filter_overlap_target and fn_overlapped_chain:
+            elif filter_overlap_target and fn_overlapped_chain:
                 msg += 'OVERLAP_TARGET'
                 print(c.print_chain(), file=foc)
             
