@@ -143,10 +143,10 @@ class Chain(ChainConst):
         if segment_size > 0:
             self.stree[self.soffset : self.soffset + segment_size] = \
                 (self.toffset - self.soffset, self.ds, self.dt, False)
-        if self.strand == '+':
-            self.ttree[self.toffset: self.toffset + segment_size] = 1
-        else:
-            self.ttree[self.toffset - segment_size: self.toffset] = 1
+            if self.strand == '+':
+                self.ttree[self.toffset: self.toffset + segment_size] = 1
+            else:
+                self.ttree[self.toffset - segment_size: self.toffset] = 1
 
         self.ds = int(fields[self.C_DS])
         self.dt = int(fields[self.C_DT])
@@ -163,11 +163,10 @@ class Chain(ChainConst):
         if segment_size > 0:
             self.stree[self.soffset : self.soffset + segment_size] = \
                 (self.toffset-self.soffset, self.ds, self.dt)
-        
-        if self.strand == '+':
-            self.ttree[self.toffset: self.toffset + segment_size] = 1
-        else:
-            self.ttree[self.toffset - segment_size: self.toffset] = 1
+            if self.strand == '+':
+                self.ttree[self.toffset: self.toffset + segment_size] = 1
+            else:
+                self.ttree[self.toffset - segment_size: self.toffset] = 1
 
     def print_chain(self) -> str:
         msg = (f'chain {self.score} '
@@ -397,7 +396,7 @@ class Chain(ChainConst):
             targetendpos = targetstartpos
             flag = 16
 
-        intervals = sorted(self.tr.all_intervals)
+        intervals = sorted(self.stree.all_intervals)
         for i, intvl in enumerate(intervals):
             # deal with indels first, because they are to the left of the matching segment:
             if i > 0:

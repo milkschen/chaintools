@@ -6,8 +6,9 @@ Johns Hopkins University
 2021
 '''
 import unittest
-import subprocess
 import utils
+import sys
+
 
 class TestReadingChain(unittest.TestCase):
     def read_and_compare(self, fn):
@@ -23,21 +24,23 @@ class TestReadingChain(unittest.TestCase):
                     c = utils.Chain(fields)
                 elif len(fields) == 3:
                     c.add_record_three(fields)
-                    pass
                 elif len(fields) == 1:
                     c.add_record_one(fields)
                     output_txt += c.print_chain()
+                    output_txt += '\n'
                     c = None
         
-        # A tab and a space are considered indifferent
+        # A tab and a space are considered to be indifferent
         input_txt = input_txt.replace('\t', ' ').rstrip()
         output_txt = output_txt.replace('\t', ' ').rstrip()
         ii = input_txt.split('\n')
         oo = output_txt.split('\n')
         if len(ii) != len(oo):
+            print(f'[E::read_and_compare] Lengths differ ({len(ii)} vs. {len(oo)})', file=sys.stderr)
             return False
         for i in range(min(len(ii), len(oo))):
             if ii[i] != oo[i]:
+                print(f'[E::read_and_compare] {ii[i]} != {oo[i]}', file=sys.stderr)
                 return False
         return input_txt == output_txt
 
@@ -61,6 +64,7 @@ class TestReadingChain(unittest.TestCase):
         self.assertTrue(self.read_and_compare(fn),
                         f'Failed when reading {fn}')
 
+
 class TestGenerateVcf(unittest.TestCase):
     def generate_and_check(self, chainfn, sourcefn, targetfn, vcffn):
         output_txt = ''
@@ -76,7 +80,6 @@ class TestGenerateVcf(unittest.TestCase):
                     c = utils.Chain(fields)
                 elif len(fields) == 3:
                     c.add_record_three(fields)
-                    pass
                 elif len(fields) == 1:
                     c.add_record_one(fields)
                     output_txt += c.to_vcf(sourceref, targetref)
@@ -97,6 +100,7 @@ class TestGenerateVcf(unittest.TestCase):
         self.assertTrue(self.generate_and_check(fn, sourcefn, targetfn, vcffn),
                         f'Failed when generating vcf from {fn}')
 
+
 class TestGenerateSAM(unittest.TestCase):
     def generate_and_check(self, chainfn, sourcefn, targetfn, samfn):
         output_txt = ''
@@ -112,7 +116,6 @@ class TestGenerateSAM(unittest.TestCase):
                     c = utils.Chain(fields)
                 elif len(fields) == 3:
                     c.add_record_three(fields)
-                    pass
                 elif len(fields) == 1:
                     c.add_record_one(fields)
                     output_txt += c.to_sam(sourceref, targetref)
@@ -132,6 +135,7 @@ class TestGenerateSAM(unittest.TestCase):
         
         self.assertTrue(self.generate_and_check(fn, sourcefn, targetfn, samfn),
                         f'Failed when generating sam from {fn}')
+
 
 if __name__ == '__main__':
     unittest.main()
