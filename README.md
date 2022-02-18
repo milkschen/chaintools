@@ -72,6 +72,10 @@ Convert a chain file to the SAM format
 python src/to_sam.py -c <in.chain> -s <source.fa> -t <target.fa> -o <out.sam> 
 ```
 
+Note: For a chain file used to convert from a target genome's coordinates to a source
+genome's coordinates, the chain header lines have target data in the second through
+sixth fields, and source data in the seventh through eleventh fields.
+
 <a name="filter"></a>
 ### Filter
 Filter a chain file by critera including chain sizes and overlap status. 
