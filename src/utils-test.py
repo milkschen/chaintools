@@ -72,10 +72,10 @@ class TestReadingChain(unittest.TestCase):
 
 
 class TestGenerateVcf(unittest.TestCase):
-    def generate_and_check(self, chainfn, targetfn, sourcefn, vcffn):
+    def generate_and_check(self, chainfn, targetfn, queryfn, vcffn):
         output_txt = ''
         targetref = utils.fasta_reader(targetfn)
-        sourceref = utils.fasta_reader(sourcefn)
+        queryref = utils.fasta_reader(queryfn)
         output_txt += utils.vcf_header(utils.get_target_entries(chainfn))
         with open(chainfn, 'r') as f:
             for line in f:
@@ -88,7 +88,7 @@ class TestGenerateVcf(unittest.TestCase):
                     c.add_record_three(fields)
                 elif len(fields) == 1:
                     c.add_record_one(fields)
-                    output_txt += c.to_vcf(targetref, sourceref)
+                    output_txt += c.to_vcf(targetref, queryref)
                     c = None
         with open(vcffn, 'r') as f:
             vcf_txt = ''
@@ -98,20 +98,20 @@ class TestGenerateVcf(unittest.TestCase):
         return output_txt == vcf_txt
 
     def test_generate_vcf_from_small(self):
-        fn = 'testdata/target-source.chain'
+        fn = 'testdata/target-query.chain'
         targetfn = 'testdata/target.fasta'
-        sourcefn = 'testdata/source.fasta'
-        vcffn = 'testdata/target-source.vcf'
+        queryfn = 'testdata/query.fasta'
+        vcffn = 'testdata/target-query.vcf'
         
-        self.assertTrue(self.generate_and_check(fn, targetfn, sourcefn, vcffn),
+        self.assertTrue(self.generate_and_check(fn, targetfn, queryfn, vcffn),
                         f'Failed when generating vcf from {fn}')
 
 
 class TestGenerateSAM(unittest.TestCase):
-    def generate_and_check(self, chainfn, targetfn, sourcefn, samfn):
+    def generate_and_check(self, chainfn, targetfn, queryfn, samfn):
         output_txt = ''
         targetref = utils.fasta_reader(targetfn)
-        sourceref = utils.fasta_reader(sourcefn)
+        queryref = utils.fasta_reader(queryfn)
         output_txt += utils.sam_header(utils.get_target_entries(chainfn))
         with open(chainfn, 'r') as f:
             for line in f:
@@ -124,7 +124,7 @@ class TestGenerateSAM(unittest.TestCase):
                     c.add_record_three(fields)
                 elif len(fields) == 1:
                     c.add_record_one(fields)
-                    output_txt += c.to_sam(targetref, sourceref)
+                    output_txt += c.to_sam(targetref, queryref)
                     c = None
         with open(samfn, 'r') as f:
             sam_txt = ''
@@ -134,12 +134,12 @@ class TestGenerateSAM(unittest.TestCase):
         return output_txt == sam_txt
 
     def test_generate_sam_from_small(self):
-        fn = 'testdata/target-source.chain'
+        fn = 'testdata/target-query.chain'
         targetfn = 'testdata/target.fasta'
-        sourcefn = 'testdata/source.fasta'
-        samfn = 'testdata/target-source.sam'
+        queryfn = 'testdata/query.fasta'
+        samfn = 'testdata/target-query.sam'
         
-        self.assertTrue(self.generate_and_check(fn, targetfn, sourcefn, samfn),
+        self.assertTrue(self.generate_and_check(fn, targetfn, queryfn, samfn),
                         f'Failed when generating sam from {fn}')
 
 
