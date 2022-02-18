@@ -88,6 +88,17 @@ def get_source_entries(fn: str)->dict:
                 dict_contig_length[line[CC.CHDR_SOURCE]] = line[CC.CHDR_SLEN]
     return dict_contig_length
 
+def get_target_entries(fn: str)->dict:
+    CC = ChainConst()
+    dict_contig_length = {}
+    with open(fn, 'r') as f:
+        for line in f:
+            line = line.split()
+            if len(line) == 13:
+                # once we change src/target in utils.py, change next line to CHDR_TARGET/CHDR_TLEN and delete this comment
+                dict_contig_length[line[CC.CHDR_SOURCE]] = line[CC.CHDR_SLEN]
+    return dict_contig_length
+
 
 class ChainConst():
     CHDR_SCORE = 1
@@ -308,53 +319,70 @@ class Chain(ChainConst):
 
         return msg
     
-    def to_vcf(self, sourceref, targetref) -> None:
+    def to_vcf(self, targetref, sourceref) -> None:
         msg = ''
+        # uncomment next nine lines and delete the next nine once source/target switch is made:
+        #qname = self.source
+        #rname = self.target
+        #pos = self.tstart + 1
+        #qlen = self.slen
+        #qstart = self.sstart
+        #qend = self.send
+        #rlen = self.tlen
+        #rstart = self.tstart
+        #rend = self.tend
+        qname = self.target
+        rname = self.source
+        pos = self.sstart + 1
+        qlen = self.tlen
+        qstart = self.tstart
+        qend = self.tend
+        rlen = self.slen
+        rstart = self.sstart
+        rend = self.send
+
         intervals = sorted(self.stree.all_intervals)
         for i, intvl in enumerate(intervals):
             # deal with indels first, because they are to the left of the matching segment:
             if i > 0:
                 # calculate zero-based, half-open ref and alt start/end (subtracting one to add base prior to event)
                 if self.strand == "+":
-                    alignseq_tend = intvl.begin + intvl.data[0]
-                    alignseq_tstart = intvl.begin + intvl.data[0] - intvl.data[2] - 1
-                    alignseq_t = targetref.fetch(reference=self.target, start=alignseq_tstart, end=alignseq_tend).upper()
-                    tpos = alignseq_tstart + 1
+                    alignseq_send = intvl.begin + intvl.data[0]
+                    alignseq_sstart = intvl.begin + intvl.data[0] - intvl.data[2] - 1
+                    alignseq_s = sourceref.fetch(reference=qname, start=alignseq_sstart, end=alignseq_send).upper()
+                    qpos = alignseq_sstart + 1
                 else:
-                    alignseq_tstart = intvl.begin + intvl.data[0]
-                    alignseq_tend = intvl.begin + intvl.data[0] + intvl.data[2] + 1
-                    alignseq_t = targetref.fetch(reference=self.target, start=alignseq_tstart, end=alignseq_tend).upper()
-                    alignseq_t = reverse_complement(alignseq_t)
-                    tpos = alignseq_tend
+                    alignseq_sstart = intvl.begin + intvl.data[0]
+                    alignseq_send = intvl.begin + intvl.data[0] + intvl.data[2] + 1
+                    alignseq_s = sourceref.fetch(reference=qname, start=alignseq_sstart, end=alignseq_send).upper()
+                    alignseq_s = reverse_complement(alignseq_s)
+                    qpos = alignseq_send
 
                 # end position of indel allele is position to left of matching segment's start, start has a base appended to the left:
-                alignseq_send = intvl.begin
-                alignseq_sstart = intvl.begin - intvl.data[1] - 1
-                alignseq_s = sourceref.fetch(reference=self.source, start=alignseq_sstart, end=alignseq_send).upper()
-                spos = alignseq_sstart + 1
+                alignseq_tend = intvl.begin
+                alignseq_tstart = intvl.begin - intvl.data[1] - 1
+                alignseq_t = targetref.fetch(reference=rname, start=alignseq_tstart, end=alignseq_tend).upper()
+                rpos = alignseq_tstart + 1
 
-                msg += (f'{self.source}\t{spos}\t.\t{alignseq_s}\t{alignseq_t}\t.\tAUTO\tALN_SCORE={self.score};' +
-                        f'ALN_TARGET={self.target};ALN_TPOS={tpos};ALN_STRAND={self.strand};ALN_DT={intvl.data[2]};ALN_DQ={intvl.data[1]}\n')
+                msg += (f'{rname}\t{rpos}\t.\t{alignseq_t}\t{alignseq_s}\t.\tAUTO\tALN_SCORE={self.score};' +
+                        f'ALN_SOURCE={qname};ALN_SPOS={qpos};ALN_STRAND={self.strand};ALN_DT={intvl.data[2]};ALN_DS={intvl.data[1]}\n')
 
             # now print SNPs within matched segment:
 
             # zero-based, half-open start/end of matched segment
             if self.strand == "+":
-                alignseq_tstart = intvl.begin + intvl.data[0]
-                alignseq_tend = intvl.end + intvl.data[0]
-                #alignseq_t = targetref[self.target][alignseq_tstart:alignseq_tend]
-                alignseq_t = targetref.fetch(reference=self.target, start=alignseq_tstart, end=alignseq_tend).upper()
+                alignseq_sstart = intvl.begin + intvl.data[0]
+                alignseq_send = intvl.end + intvl.data[0]
+                alignseq_s = sourceref.fetch(reference=qname, start=alignseq_sstart, end=alignseq_send).upper()
             else:
-                alignseq_tend = intvl.begin + intvl.data[0]
-                alignseq_tstart = alignseq_tend - (intvl.end - intvl.begin)
-                #alignseq_t = targetref[self.target][alignseq_tstart:alignseq_tend]
-                alignseq_t = targetref.fetch(reference=self.target, start=alignseq_tstart, end=alignseq_tend).upper()
-                alignseq_t = reverse_complement(alignseq_t)
+                alignseq_send = intvl.begin + intvl.data[0]
+                alignseq_sstart = alignseq_send - (intvl.end - intvl.begin)
+                alignseq_s = sourceref.fetch(reference=qname, start=alignseq_sstart, end=alignseq_send).upper()
+                alignseq_s = reverse_complement(alignseq_s)
 
-            alignseq_sstart = intvl.begin
-            alignseq_send = intvl.end
-            #alignseq_s = sourceref[self.source][alignseq_sstart:alignseq_send]
-            alignseq_s = sourceref.fetch(reference=self.source, start=alignseq_sstart, end=alignseq_send).upper()
+            alignseq_tstart = intvl.begin
+            alignseq_tend = intvl.end
+            alignseq_t = targetref.fetch(reference=rname, start=alignseq_tstart, end=alignseq_tend).upper()
 
             segmentlength = intvl.end - intvl.begin
 
@@ -363,57 +391,72 @@ class Chain(ChainConst):
             for i in range(segmentlength):
                 if alignseq_t[i] != alignseq_s[i]:
                     # convert to one-based start position:
-                    spos = alignseq_sstart + i + 1
+                    rpos = alignseq_tstart + i + 1
                     if self.strand == "+":
-                        tpos = alignseq_tstart + i + 1
+                        qpos = alignseq_sstart + i + 1
                     else:
-                        tpos = alignseq_tend - i
-                    msg += (f'{self.source}\t{spos}\t.\t{alignseq_s[i]}\t{alignseq_t[i]}\t.\tAUTO\tALN_SCORE={self.score};ALN_TARGET={self.target};ALN_TPOS={tpos};ALN_STRAND={self.strand}\n')
+                        qpos = alignseq_send - i
+                    msg += (f'{rname}\t{rpos}\t.\t{alignseq_t[i]}\t{alignseq_s[i]}\t.\tAUTO\tALN_SCORE={self.score};ALN_SOURCE={qname};ALN_SPOS={qpos};ALN_STRAND={self.strand}\n')
 
         return msg
     
-    def to_sam(self, sourceref, targetref) -> None:
+    def to_sam(self, targetref, sourceref) -> None:
         msg = ''
         cigarstring = ''
         nmtagval = 0
 
         # these are all correct for positive or negative strand (positions 1-based):
+        # uncomment next nine lines and delete the next nine once source/target switch is made:
+        #qname = self.source
+        #rname = self.target
+        #pos = self.tstart + 1
+        #qlen = self.slen
+        #qstart = self.sstart
+        #qend = self.send
+        #rlen = self.tlen
+        #rstart = self.tstart
+        #rend = self.tend
         qname = self.target
         rname = self.source
         pos = self.sstart + 1
+        qlen = self.tlen
+        qstart = self.tstart
+        qend = self.tend
+        rlen = self.slen
+        rstart = self.sstart
+        rend = self.send
         chainid = self.id
         segmentid = 1
 
         # hard clipping at start of alignment and 1-based target starts/ends:
         if self.strand == '+':
-            lefthardclip = self.tstart
-            targetstartpos = self.tstart + 1
-            targetendpos = targetstartpos
+            lefthardclip = qstart
+            sourcestartpos = qstart + 1
+            sourceendpos = sourcestartpos
             flag = 0
         else:
-            lefthardclip = self.tstart
-            targetstartpos = self.tlen - self.tstart
-            targetendpos = targetstartpos
+            lefthardclip = qstart
+            sourcestartpos = qlen - qstart
+            sourceendpos = sourcestartpos
             flag = 16
 
         intervals = sorted(self.stree.all_intervals)
         for i, intvl in enumerate(intervals):
             # deal with indels first, because they are to the left of the matching segment:
             if i > 0:
-                deltas = intvl.data[1]
-                deltat = intvl.data[2]
+                deltat = intvl.data[1]
+                deltas = intvl.data[2]
 
-                # split the alignment if there are unaligned bases in both the source and the target
-                # might want to have an option to shut off this behavior
-                if deltas > 0 and deltat > 0:
+                # split the alignment if there are unaligned bases in both the target and the source and the target
+                if deltat > 0 and deltas > 0:
                     # write alignment line, increment segment number, reset start positions of alignment and left hard clipping
                     if self.strand == '+':
-                        righthardclip = self.tlen - targetendpos + 1
-                        seq = targetref.fetch(reference=qname, start=targetstartpos-1, end=targetendpos-1).upper()
+                        righthardclip = qlen - sourceendpos + 1
+                        seq = sourceref.fetch(reference=qname, start=sourcestartpos-1, end=sourceendpos-1).upper()
                     else:
-                        righthardclip = targetendpos
-                        print(f'targetlimits {qname}:{targetendpos}-{targetstartpos} revcomp')
-                        seq = targetref.fetch(reference=qname, start=targetendpos, end=targetstartpos).upper()
+                        righthardclip = sourceendpos
+                        #print(f'sourcelimits {qname}:{sourceendpos}-{sourcestartpos} revcomp')
+                        seq = sourceref.fetch(reference=qname, start=sourceendpos, end=sourcestartpos).upper()
                         seq = reverse_complement(seq)
                     fullcigar = f'{lefthardclip}H' + cigarstring + f'{righthardclip}H'
                     msg += (f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}\t0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{nmtagval}\n')
@@ -422,43 +465,43 @@ class Chain(ChainConst):
                     nmtagval = 0
                     if self.strand == '+':
                         lefthardclip = intvl.begin + intvl.data[0]
-                        targetstartpos = lefthardclip + 1
+                        sourcestartpos = lefthardclip + 1
                     else:
-                        lefthardclip = self.tlen - intvl.begin - intvl.data[0]
-                        targetstartpos = intvl.begin + intvl.data[0]
-                    targetendpos = targetstartpos
+                        lefthardclip = qlen - intvl.begin - intvl.data[0]
+                        sourcestartpos = intvl.begin + intvl.data[0]
+                    sourceendpos = sourcestartpos
                     segmentid += 1
                 else:
-                    if deltas > 0:
-                        cigarstring += f'{deltas}D'
-                        nmtagval += deltas
-                    else:
-                        cigarstring += f'{deltat}I'
+                    if deltat > 0:
+                        cigarstring += f'{deltat}D'
                         nmtagval += deltat
-                    if self.strand == '+':
-                        targetendpos += deltat
                     else:
-                        targetendpos -= deltat
+                        cigarstring += f'{deltas}I'
+                        nmtagval += deltas
+                    if self.strand == '+':
+                        sourceendpos += deltas
+                    else:
+                        sourceendpos -= deltas
 
             # now add X/= counts to cigar within matched segment:
             # zero-based, half-open start/end of matched segment
 
             segmentlength = intvl.end - intvl.begin
             if self.strand == "+":
-                alignseq_tstart = intvl.begin + intvl.data[0]
-                alignseq_tend = intvl.end + intvl.data[0]
-                alignseq_t = targetref.fetch(reference=self.target, start=alignseq_tstart, end=alignseq_tend).upper()
-                targetendpos += segmentlength
+                alignseq_sstart = intvl.begin + intvl.data[0]
+                alignseq_send = intvl.end + intvl.data[0]
+                alignseq_s = sourceref.fetch(reference=qname, start=alignseq_sstart, end=alignseq_send).upper()
+                sourceendpos += segmentlength
             else:
-                alignseq_tend = intvl.begin + intvl.data[0]
-                alignseq_tstart = alignseq_tend - (intvl.end - intvl.begin)
-                alignseq_t = targetref.fetch(reference=self.target, start=alignseq_tstart, end=alignseq_tend).upper()
-                alignseq_t = reverse_complement(alignseq_t)
-                targetendpos -= segmentlength
+                alignseq_send = intvl.begin + intvl.data[0]
+                alignseq_sstart = alignseq_send - (intvl.end - intvl.begin)
+                alignseq_s = sourceref.fetch(reference=qname, start=alignseq_sstart, end=alignseq_send).upper()
+                alignseq_s = reverse_complement(alignseq_s)
+                sourceendpos -= segmentlength
 
-            alignseq_sstart = intvl.begin
-            alignseq_send = intvl.end
-            alignseq_s = sourceref.fetch(reference=self.source, start=alignseq_sstart, end=alignseq_send).upper()
+            alignseq_tstart = intvl.begin
+            alignseq_tend = intvl.end
+            alignseq_t = targetref.fetch(reference=rname, start=alignseq_tstart, end=alignseq_tend).upper()
 
             #print(f'Tstart {alignseq_tstart} Tend {alignseq_tend} Sstart {alignseq_sstart} Send {alignseq_send} Intvl {intvl.begin}:{intvl.end} Toffset {intvl.data[1]} Seglength {segmentlength}')
 
@@ -484,11 +527,11 @@ class Chain(ChainConst):
 
         # write last alignment line
         if self.strand == '+':
-            righthardclip = self.tlen - targetendpos + 1
-            seq = targetref.fetch(reference=qname, start=targetstartpos-1, end=targetendpos-1).upper()
+            righthardclip = qlen - sourceendpos + 1
+            seq = sourceref.fetch(reference=qname, start=sourcestartpos-1, end=sourceendpos-1).upper()
         else:
-            righthardclip = targetendpos
-            seq = targetref.fetch(reference=qname, start=targetendpos, end=targetstartpos).upper()
+            righthardclip = sourceendpos
+            seq = sourceref.fetch(reference=qname, start=sourceendpos, end=sourcestartpos).upper()
             seq = reverse_complement(seq)
         fullcigar = f'{lefthardclip}H' + cigarstring + f'{righthardclip}H'
         msg += (f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}\t0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{nmtagval}\n')
@@ -503,11 +546,11 @@ def vcf_header(dict_contig_length) -> str:
     for contig in sorted(dict_contig_length, key=lambda i: int(dict_contig_length[i]), reverse=True):
         header += (f'##contig=<ID={contig}, length={dict_contig_length[contig]}>\n')
     header += (f'##INFO=<ID=ALN_SCORE,Number=A,Type=Integer,Description="Score of chain alignment.">\n')
-    header += (f'##INFO=<ID=ALN_TARGET,Number=A,Type=String,Description="Variant target contig.">\n')
-    header += (f'##INFO=<ID=ALN_TPOS,Number=A,Type=Integer,Description="Variant position on target contig.">\n')
+    header += (f'##INFO=<ID=ALN_SOURCE,Number=A,Type=String,Description="Variant source contig.">\n')
+    header += (f'##INFO=<ID=ALN_SPOS,Number=A,Type=Integer,Description="Variant position on source contig.">\n')
     header += (f'##INFO=<ID=ALN_STRAND,Number=A,Type=String,Description="Strand of chain alignment.">\n')
-    header += (f'##INFO=<ID=ALN_DT,Number=A,Type=Integer,Description="Length of gap on SEQ_T.">\n')
-    header += (f'##INFO=<ID=ALN_DQ,Number=A,Type=Integer,Description="Length of gap on SEQ_Q.">\n')
+    header += (f'##INFO=<ID=ALN_DT,Number=A,Type=Integer,Description="Length of gap on target sequence.">\n')
+    header += (f'##INFO=<ID=ALN_DS,Number=A,Type=Integer,Description="Length of gap on source sequence.">\n')
     header += (f'#CHROM       POS     ID      REF     ALT     QUAL    FILTER  INFO\n')
 
     return header

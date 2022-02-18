@@ -9,12 +9,12 @@ def parse_args():
         help='Path to the chain file'
     )
     parser.add_argument(
-        '-s', '--sourcefasta', required=True,
-        help='Path to the fasta file for the source genome'
+        '-t', '--targetfasta', required=True,
+        help='Path to the fasta file for the target genome of the chain file'
     )
     parser.add_argument(
-        '-t', '--targetfasta', required=True,
-        help='Path to the fasta file for the target genome'
+        '-s', '--sourcefasta', required=True,
+        help='Path to the fasta file for the source genome of the chain file'
     )
     parser.add_argument(
         '-o', '--output', default='',
@@ -23,17 +23,17 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def write_to_vcf(fn_chain: str, fn_vcf: str, fn_sourcefasta: str, fn_targetfasta: str):
+def write_to_vcf(fn_chain: str, fn_vcf: str, fn_targetfasta: str, fn_sourcefasta: str):
     f = open(fn_chain, 'r')
     if fn_vcf:
         fo = open(fn_vcf, 'w')
     else:
         fo = sys.stdout
 
-    print(utils.vcf_header(utils.get_source_entries(fn_chain)), file=fo, end='')
+    print(utils.vcf_header(utils.get_target_entries(fn_chain)), file=fo, end='')
 
-    sourceref = utils.fasta_reader(fn_sourcefasta)
     targetref = utils.fasta_reader(fn_targetfasta)
+    sourceref = utils.fasta_reader(fn_sourcefasta)
 
     for line in f:
         fields = line.split()
@@ -45,9 +45,9 @@ def write_to_vcf(fn_chain: str, fn_vcf: str, fn_sourcefasta: str, fn_targetfasta
             c.add_record_three(fields)
         elif len(fields) == 1:
             c.add_record_one(fields)
-            print(c.to_vcf(sourceref, targetref), file=fo, end='')
+            print(c.to_vcf(targetref, sourceref), file=fo, end='')
             c = None
 
 if __name__ == '__main__':
     args = parse_args()
-    write_to_vcf(fn_chain=args.chain, fn_vcf=args.output, fn_sourcefasta=args.sourcefasta, fn_targetfasta=args.targetfasta)
+    write_to_vcf(fn_chain=args.chain, fn_vcf=args.output, fn_targetfasta=args.targetfasta, fn_sourcefasta=args.sourcefasta)
