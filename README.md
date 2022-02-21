@@ -58,23 +58,27 @@ python src/to_paf.py -c <in.chain> -o <out.paf>
 
 <a name="to_vcf"></a>
 ### Convert to VCF
-Convert to chain file to the VCF format
+Convert a chain file to the ([VCF format](https://samtools.github.io/hts-specs/VCFv4.2.pdf)),
+using the target fasta file for the genome *from* which
+the chain lifts, and the query fasta file for the genome *to* which the chain lifts.
 
 ```
-python src/to_vcf.py -c <in.chain> -s <source.fa> -t <target.fa> -o <out.vcf>
+python src/to_vcf.py -c <in.chain> -t <target.fa> -q <query.fa> -o <out.vcf>
 ```
 
 <a name="to_sam"></a>
 ### Convert to SAM
-Convert a chain file to the SAM format
+Convert a chain file to the ([SAM format] (https://samtools.github.io/hts-specs/SAMv1.pdf)), 
+using the target fasta file for the genome *from* which
+the chain lifts, and the query fasta file for the genome *to* which the chain lifts.
 
 ```
-python src/to_sam.py -c <in.chain> -s <source.fa> -t <target.fa> -o <out.sam> 
+python src/to_sam.py -c <in.chain> -t <target.fa> -q <query.fa> -o <out.sam> 
 ```
 
-Note: For a chain file used to convert from a target genome's coordinates to a source
+Note: For a chain file used to convert from a target genome's coordinates to a query
 genome's coordinates, the chain header lines have target data in the second through
-sixth fields, and source data in the seventh through eleventh fields.
+sixth fields, and query data in the seventh through eleventh fields.
 
 <a name="filter"></a>
 ### Filter
