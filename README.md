@@ -68,7 +68,7 @@ python src/to_vcf.py -c <in.chain> -t <target.fa> -q <query.fa> -o <out.vcf>
 
 <a name="to_sam"></a>
 ### Convert to SAM
-Convert a chain file to the ([SAM format] (https://samtools.github.io/hts-specs/SAMv1.pdf)), 
+Convert a chain file to the ([SAM format](https://samtools.github.io/hts-specs/SAMv1.pdf)), 
 using the target fasta file for the genome *from* which
 the chain lifts, and the query fasta file for the genome *to* which the chain lifts.
 
