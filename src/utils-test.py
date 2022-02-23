@@ -73,10 +73,9 @@ class TestReadingChain(unittest.TestCase):
 
 class TestGenerateVcf(unittest.TestCase):
     def generate_and_check(self, chainfn, targetfn, queryfn, vcffn):
-        output_txt = ''
         targetref = utils.fasta_reader(targetfn)
         queryref = utils.fasta_reader(queryfn)
-        output_txt += utils.vcf_header(utils.get_target_entries(chainfn))
+        output_txt = utils.vcf_header(utils.get_query_entries(chainfn))
         with open(chainfn, 'r') as f:
             for line in f:
                 fields = line.split()
@@ -92,7 +91,12 @@ class TestGenerateVcf(unittest.TestCase):
                     c = None
         with open(vcffn, 'r') as f:
             vcf_txt = ''
-            for line in f:
+            output_lines = output_txt.split('\n')
+            for i, line in enumerate(f):
+                if line.rstrip() != output_lines[i]:
+                    print('\n   truth vcf line:', line.rstrip())
+                    print('reported vcf line:', output_lines[i])
+                    return False
                 vcf_txt += line
 
         return output_txt == vcf_txt
@@ -112,7 +116,7 @@ class TestGenerateSAM(unittest.TestCase):
         output_txt = ''
         targetref = utils.fasta_reader(targetfn)
         queryref = utils.fasta_reader(queryfn)
-        output_txt += utils.sam_header(utils.get_target_entries(chainfn))
+        output_txt += utils.sam_header(utils.get_query_entries(chainfn))
         with open(chainfn, 'r') as f:
             for line in f:
                 fields = line.split()
@@ -162,7 +166,7 @@ class TestFilter(unittest.TestCase):
                     c.add_record_one(fields)
                     filter_results.append(filter.filter_core(
                         c=c, segment_size=segment_size, unique=unique,
-                        stree_dict=stree_dict, ttree_dict=ttree_dict))
+                        stree_dict=stree_dict, qtree_dict=ttree_dict))
                     c = None
         return filter_results
 

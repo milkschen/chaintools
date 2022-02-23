@@ -82,17 +82,17 @@ def compute_hamming_dist(
     idy /= len(s1)
     return idy
 
-def get_source_entries(fn: str)->dict:
-    CC = ChainConst()
-    dict_contig_length = {}
-    with open(fn, 'r') as f:
-        for line in f:
-            line = line.split()
-            if len(line) == 13:
-                dict_contig_length[line[CC.CHDR_SOURCE]] = line[CC.CHDR_SLEN]
-    return dict_contig_length
+# def get_source_entries(fn: str)->dict:
+#     CC = ChainConst()
+#     dict_contig_length = {}
+#     with open(fn, 'r') as f:
+#         for line in f:
+#             line = line.split()
+#             if len(line) == 13:
+#                 dict_contig_length[line[CC.CHDR_SOURCE]] = line[CC.CHDR_SLEN]
+#     return dict_contig_length
 
-def get_target_entries(fn: str)->dict:
+def get_query_entries(fn: str)->dict:
     CC = ChainConst()
     dict_contig_length = {}
     with open(fn, 'r') as f:
@@ -111,15 +111,15 @@ class ChainConst():
     CHDR_SSTRAND = 4
     CHDR_SSTART = 5
     CHDR_SEND = 6
-    CHDR_TARGET = 7
-    CHDR_TLEN = 8
-    CHDR_TSTRAND = 9
-    CHDR_TSTART = 10
-    CHDR_TEND = 11
+    CHDR_QUERY = 7
+    CHDR_QLEN = 8
+    CHDR_QSTRAND = 9
+    CHDR_QSTART = 10
+    CHDR_QEND = 11
     CHDR_ID = 12
     C_SIZE = 0
     C_DS = 1
-    C_DT = 2
+    C_DQ = 2
 
 
 class Chain(ChainConst):
@@ -135,21 +135,21 @@ class Chain(ChainConst):
         self.soffset = self.sstart
         self.send = int(fields[self.CHDR_SEND])
         self.sstrand = fields[self.CHDR_SSTRAND]
-        self.target = fields[self.CHDR_TARGET]
-        self.tlen = int(fields[self.CHDR_TLEN])
-        self.tstrand = fields[self.CHDR_TSTRAND]
-        self.tstart = int(fields[self.CHDR_TSTART])
-        if self.tstrand == '+':
-            self.toffset = self.tstart
+        self.query = fields[self.CHDR_QUERY]
+        self.qlen = int(fields[self.CHDR_QLEN])
+        self.qstrand = fields[self.CHDR_QSTRAND]
+        self.qstart = int(fields[self.CHDR_QSTART])
+        if self.qstrand == '+':
+            self.qoffset = self.qstart
         else:
-            self.toffset = self.tlen - self.tstart
-        self.tend = int(fields[self.CHDR_TEND])
+            self.qoffset = self.qlen - self.qstart
+        self.qend = int(fields[self.CHDR_QEND])
 
-        self.strand = '+' if (self.sstrand == '+' and self.tstrand == '+') \
+        self.strand = '+' if (self.sstrand == '+' and self.qstrand == '+') \
                           else '-'
         self.id = fields[self.CHDR_ID]
         self.ds = 0
-        self.dt = 0
+        self.dq = 0
 
         self.seglen = 0
 
@@ -157,36 +157,36 @@ class Chain(ChainConst):
         segment_size = int(fields[self.C_SIZE])
         if segment_size > 0:
             self.stree[self.soffset : self.soffset + segment_size] = \
-                (self.toffset - self.soffset, self.ds, self.dt, False)
+                (self.qoffset - self.soffset, self.ds, self.dq, False)
             if self.strand == '+':
-                self.ttree[self.toffset: self.toffset + segment_size] = 1
+                self.ttree[self.qoffset: self.qoffset + segment_size] = 1
             else:
-                self.ttree[self.toffset - segment_size: self.toffset] = 1
+                self.ttree[self.qoffset - segment_size: self.qoffset] = 1
 
         self.ds = int(fields[self.C_DS])
-        self.dt = int(fields[self.C_DT])
+        self.dq = int(fields[self.C_DQ])
         self.soffset += (segment_size + self.ds)
         self.seglen += segment_size
         if self.strand == '+':
-            self.toffset += (segment_size + self.dt)
+            self.qoffset += (segment_size + self.dq)
         else:
-            self.toffset -= (segment_size + self.dt)
+            self.qoffset -= (segment_size + self.dq)
 
     def add_record_one(self, fields):
         segment_size = int(fields[self.C_SIZE])
         self.seglen += segment_size
         if segment_size > 0:
             self.stree[self.soffset : self.soffset + segment_size] = \
-                (self.toffset-self.soffset, self.ds, self.dt)
+                (self.qoffset-self.soffset, self.ds, self.dq)
             if self.strand == '+':
-                self.ttree[self.toffset: self.toffset + segment_size] = 1
+                self.ttree[self.qoffset: self.qoffset + segment_size] = 1
             else:
-                self.ttree[self.toffset - segment_size: self.toffset] = 1
+                self.ttree[self.qoffset - segment_size: self.qoffset] = 1
 
     def print_chain(self) -> str:
         msg = (f'chain {self.score} '
                f'{self.source} {self.slen} {self.sstrand} {self.sstart} {self.send} '
-               f'{self.target} {self.tlen} {self.tstrand} {self.tstart} {self.tend} '
+               f'{self.query} {self.qlen} {self.qstrand} {self.qstart} {self.qend} '
                f'{self.id}\n')
         intervals = sorted(self.stree.all_intervals)
         for i, intvl in enumerate(intervals):
@@ -205,7 +205,7 @@ class Chain(ChainConst):
         else:
             msg += (f'{intvl.end - intvl.begin}\t'
                     f'{self.send - intvl.end}\t'
-                    f'{self.tend - (intvl.end+intvl.data[0])}\n0')
+                    f'{self.qend - (intvl.end+intvl.data[0])}\n0')
         return msg
 
     def try_merge(self, c):
@@ -270,10 +270,10 @@ class Chain(ChainConst):
         self.score += c.score
         if sorted_intervals[0][0] < self.sstart:
             self.sstart = sorted_intervals[0][0]
-            self.tstart = self.sstart + sorted_intervals[0][2]
+            self.qstart = self.sstart + sorted_intervals[0][2]
         if sorted_intervals[-1][1] > self.send:
             self.send = sorted_intervals[-1][1]
-            self.tend = self.send + sorted_intervals[-1][2]
+            self.qend = self.send + sorted_intervals[-1][2]
 
         return True
 
@@ -294,13 +294,13 @@ class Chain(ChainConst):
                     msg += f'{dt - ds}D'
             return msg
 
-        if self.tstrand == '+':
-            msg = (f'{self.source}\t{self.slen}\t{self.sstart}\t{self.send}\t{self.tstrand}\t'
-                   f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.score}\t'
+        if self.qstrand == '+':
+            msg = (f'{self.source}\t{self.slen}\t{self.sstart}\t{self.send}\t{self.qstrand}\t'
+                   f'{self.query}\t{self.qlen}\t{self.qstart}\t{self.qend}\t{self.score}\t'
                    f'{self.score}\t60\tcg:Z:')
         else:
-            msg = (f'{self.source}\t{self.slen}\t{self.sstart}\t{self.send}\t{self.tstrand}\t'
-                   f'{self.target}\t{self.tlen}\t{self.tlen - self.tend}\t{self.tlen - self.tstart}\t{self.score}\t'
+            msg = (f'{self.source}\t{self.slen}\t{self.sstart}\t{self.send}\t{self.qstrand}\t'
+                   f'{self.query}\t{self.qlen}\t{self.qlen - self.qend}\t{self.qlen - self.qstart}\t{self.score}\t'
                    f'{self.score}\t60\tcg:Z:')
         intervals = sorted(self.stree.all_intervals)
         for i, intvl in enumerate(intervals):
@@ -318,12 +318,12 @@ class Chain(ChainConst):
         else:
             num_m = intvl.end - intvl.begin
             ds = self.send - intvl.end
-            dt = self.tend - (intvl.end+intvl.data[0])
+            dt = self.qend - (intvl.end+intvl.data[0])
             msg = update_cigar(msg, num_m, ds, dt)
 
         return msg
     
-    def to_vcf(self, targetref, sourceref) -> None:
+    def to_vcf(self, queryref, sourceref) -> None:
         msg = ''
         # uncomment next nine lines and delete the next nine once source/target switch is made:
         #qname = self.source
@@ -335,12 +335,12 @@ class Chain(ChainConst):
         #rlen = self.tlen
         #rstart = self.tstart
         #rend = self.tend
-        qname = self.target
+        qname = self.query
         rname = self.source
         pos = self.sstart + 1
-        qlen = self.tlen
-        qstart = self.tstart
-        qend = self.tend
+        qlen = self.qlen
+        qstart = self.qstart
+        qend = self.qend
         rlen = self.slen
         rstart = self.sstart
         rend = self.send
@@ -363,13 +363,13 @@ class Chain(ChainConst):
                     qpos = alignseq_send
 
                 # end position of indel allele is position to left of matching segment's start, start has a base appended to the left:
-                alignseq_tend = intvl.begin
-                alignseq_tstart = intvl.begin - intvl.data[1] - 1
-                alignseq_t = targetref.fetch(reference=rname, start=alignseq_tstart, end=alignseq_tend).upper()
-                rpos = alignseq_tstart + 1
+                alignseq_qend = intvl.begin
+                alignseq_qstart = intvl.begin - intvl.data[1] - 1
+                alignseq_q = queryref.fetch(reference=rname, start=alignseq_qstart, end=alignseq_qend).upper()
+                rpos = alignseq_qstart + 1
 
-                msg += (f'{rname}\t{rpos}\t.\t{alignseq_t}\t{alignseq_s}\t.\tAUTO\tALN_SCORE={self.score};' +
-                        f'ALN_SOURCE={qname};ALN_SPOS={qpos};ALN_STRAND={self.strand};ALN_DT={intvl.data[2]};ALN_DS={intvl.data[1]}\n')
+                msg += (f'{rname}\t{rpos}\t.\t{alignseq_q}\t{alignseq_s}\t.\tAUTO\tALN_SCORE={self.score};' +
+                        f'ALN_QUERY={qname};ALN_QPOS={qpos};ALN_STRAND={self.strand};ALN_DQ={intvl.data[2]};ALN_DT={intvl.data[1]}\n')
 
             # now print SNPs within matched segment:
 
@@ -384,27 +384,27 @@ class Chain(ChainConst):
                 alignseq_s = sourceref.fetch(reference=qname, start=alignseq_sstart, end=alignseq_send).upper()
                 alignseq_s = reverse_complement(alignseq_s)
 
-            alignseq_tstart = intvl.begin
-            alignseq_tend = intvl.end
-            alignseq_t = targetref.fetch(reference=rname, start=alignseq_tstart, end=alignseq_tend).upper()
+            alignseq_qstart = intvl.begin
+            alignseq_qend = intvl.end
+            alignseq_q = queryref.fetch(reference=rname, start=alignseq_qstart, end=alignseq_qend).upper()
 
             segmentlength = intvl.end - intvl.begin
 
             #print(f'Tstart {alignseq_tstart} Tend {alignseq_tend} Sstart {alignseq_sstart} Send {alignseq_send} Intvl {intvl.begin}:{intvl.end} Toffset {intvl.data[1]} Seglength {segmentlength}')
 
             for i in range(segmentlength):
-                if alignseq_t[i] != alignseq_s[i]:
+                if alignseq_q[i] != alignseq_s[i]:
                     # convert to one-based start position:
-                    rpos = alignseq_tstart + i + 1
+                    rpos = alignseq_qstart + i + 1
                     if self.strand == "+":
                         qpos = alignseq_sstart + i + 1
                     else:
                         qpos = alignseq_send - i
-                    msg += (f'{rname}\t{rpos}\t.\t{alignseq_t[i]}\t{alignseq_s[i]}\t.\tAUTO\tALN_SCORE={self.score};ALN_SOURCE={qname};ALN_SPOS={qpos};ALN_STRAND={self.strand}\n')
+                    msg += (f'{rname}\t{rpos}\t.\t{alignseq_q[i]}\t{alignseq_s[i]}\t.\tAUTO\tALN_SCORE={self.score};ALN_QUERY={qname};ALN_QPOS={qpos};ALN_STRAND={self.strand}\n')
 
         return msg
     
-    def to_sam(self, targetref, sourceref) -> None:
+    def to_sam(self, queryref, sourceref) -> None:
         msg = ''
         cigarstring = ''
         nmtagval = 0
@@ -420,12 +420,12 @@ class Chain(ChainConst):
         #rlen = self.tlen
         #rstart = self.tstart
         #rend = self.tend
-        qname = self.target
+        qname = self.query
         rname = self.source
         pos = self.sstart + 1
-        qlen = self.tlen
-        qstart = self.tstart
-        qend = self.tend
+        qlen = self.qlen
+        qstart = self.qstart
+        qend = self.qend
         rlen = self.slen
         rstart = self.sstart
         rend = self.send
@@ -503,16 +503,16 @@ class Chain(ChainConst):
                 alignseq_s = reverse_complement(alignseq_s)
                 sourceendpos -= segmentlength
 
-            alignseq_tstart = intvl.begin
-            alignseq_tend = intvl.end
-            alignseq_t = targetref.fetch(reference=rname, start=alignseq_tstart, end=alignseq_tend).upper()
+            alignseq_qstart = intvl.begin
+            alignseq_qend = intvl.end
+            alignseq_q = queryref.fetch(reference=rname, start=alignseq_qstart, end=alignseq_qend).upper()
 
             #print(f'Tstart {alignseq_tstart} Tend {alignseq_tend} Sstart {alignseq_sstart} Send {alignseq_send} Intvl {intvl.begin}:{intvl.end} Toffset {intvl.data[1]} Seglength {segmentlength}')
 
             nummatches = 0
             nummismatches = 0
             for i in range(segmentlength):
-                if alignseq_t[i] == alignseq_s[i]:
+                if alignseq_q[i] == alignseq_s[i]:
                     if nummismatches > 0:
                         cigarstring += f'{nummismatches}X'
                         nmtagval += nummismatches
@@ -542,6 +542,7 @@ class Chain(ChainConst):
 
         return msg
 
+
 def vcf_header(dict_contig_length) -> str:
     header = ''
     header += (f'##fileformat=VCFv4.3\n')
@@ -550,11 +551,11 @@ def vcf_header(dict_contig_length) -> str:
     for contig in sorted(dict_contig_length, key=lambda i: int(dict_contig_length[i]), reverse=True):
         header += (f'##contig=<ID={contig}, length={dict_contig_length[contig]}>\n')
     header += (f'##INFO=<ID=ALN_SCORE,Number=A,Type=Integer,Description="Score of chain alignment.">\n')
-    header += (f'##INFO=<ID=ALN_SOURCE,Number=A,Type=String,Description="Variant source contig.">\n')
-    header += (f'##INFO=<ID=ALN_SPOS,Number=A,Type=Integer,Description="Variant position on source contig.">\n')
+    header += (f'##INFO=<ID=ALN_QUERY,Number=A,Type=String,Description="Variant query contig.">\n')
+    header += (f'##INFO=<ID=ALN_QPOS,Number=A,Type=Integer,Description="Variant position on query contig.">\n')
     header += (f'##INFO=<ID=ALN_STRAND,Number=A,Type=String,Description="Strand of chain alignment.">\n')
     header += (f'##INFO=<ID=ALN_DT,Number=A,Type=Integer,Description="Length of gap on target sequence.">\n')
-    header += (f'##INFO=<ID=ALN_DS,Number=A,Type=Integer,Description="Length of gap on source sequence.">\n')
+    header += (f'##INFO=<ID=ALN_DQ,Number=A,Type=Integer,Description="Length of gap on query sequence.">\n')
     header += (f'#CHROM       POS     ID      REF     ALT     QUAL    FILTER  INFO\n')
 
     return header
