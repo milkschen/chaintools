@@ -41,7 +41,7 @@ def write_to_sam(fn_chain: str, fn_sam: str, fn_targetfasta: str, fn_queryfasta:
     else:
         fo = sys.stdout
 
-    print(utils.sam_header(utils.get_query_entries(fn_chain)), file=fo, end='')
+    print(utils.sam_header(utils.get_target_entries(fn_chain)), file=fo, end='')
 
     targetref = utils.fasta_reader(fn_targetfasta)
     queryref = utils.fasta_reader(fn_queryfasta)

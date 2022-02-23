@@ -75,7 +75,7 @@ class TestGenerateVcf(unittest.TestCase):
     def generate_and_check(self, chainfn, targetfn, queryfn, vcffn):
         targetref = utils.fasta_reader(targetfn)
         queryref = utils.fasta_reader(queryfn)
-        output_txt = utils.vcf_header(utils.get_query_entries(chainfn))
+        output_txt = utils.vcf_header(utils.get_target_entries(chainfn))
         with open(chainfn, 'r') as f:
             for line in f:
                 fields = line.split()
@@ -116,7 +116,7 @@ class TestGenerateSAM(unittest.TestCase):
         output_txt = ''
         targetref = utils.fasta_reader(targetfn)
         queryref = utils.fasta_reader(queryfn)
-        output_txt += utils.sam_header(utils.get_query_entries(chainfn))
+        output_txt += utils.sam_header(utils.get_target_entries(chainfn))
         with open(chainfn, 'r') as f:
             for line in f:
                 fields = line.split()

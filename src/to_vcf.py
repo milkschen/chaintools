@@ -41,7 +41,7 @@ def write_to_vcf(fn_chain: str, fn_vcf: str, fn_targetfasta: str, fn_queryfasta:
     else:
         fo = sys.stdout
 
-    print(utils.vcf_header(utils.get_query_entries(fn_chain)), file=fo, end='')
+    print(utils.vcf_header(utils.get_target_entries(fn_chain)), file=fo, end='')
 
     targetref = utils.fasta_reader(fn_targetfasta)
     queryref = utils.fasta_reader(fn_queryfasta)
