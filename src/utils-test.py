@@ -150,7 +150,7 @@ class TestGenerateSAM(unittest.TestCase):
 class TestFilter(unittest.TestCase):
     def read_filter_compare(
         self, fn: str, segment_size: int, unique: bool,
-        stree_dict: dict, ttree_dict: dict
+        ttree_dict: dict, qtree_dict: dict
     ) -> list:
         filter_results = []
         with open(fn, 'r') as f:
@@ -166,7 +166,7 @@ class TestFilter(unittest.TestCase):
                     c.add_record_one(fields)
                     filter_results.append(filter.filter_core(
                         c=c, segment_size=segment_size, unique=unique,
-                        stree_dict=stree_dict, qtree_dict=ttree_dict))
+                        ttree_dict=ttree_dict, qtree_dict=qtree_dict))
                     c = None
         return filter_results
 
@@ -174,7 +174,7 @@ class TestFilter(unittest.TestCase):
         fn = 'testdata/forward.chain'
         filter_results = self.read_filter_compare(
             fn=fn, segment_size=0, unique=False,
-            stree_dict={}, ttree_dict={})
+            ttree_dict={}, qtree_dict={})
         self.assertTrue(not any(filter_results[0]), f'Failed when reading {fn} [0]')
         self.assertTrue(not any(filter_results[1]), f'Failed when reading {fn} [1]')
     
@@ -182,7 +182,7 @@ class TestFilter(unittest.TestCase):
         fn = 'testdata/forward.chain'
         filter_results = self.read_filter_compare(
             fn=fn, segment_size=360000, unique=False,
-            stree_dict={}, ttree_dict={})
+            ttree_dict={}, qtree_dict={})
         self.assertTrue(filter_results[0] == (True, False, False), 
                         f'Failed when reading {fn} [0]')
         self.assertTrue(not any(filter_results[1]), f'Failed when reading {fn} [1]')
@@ -194,7 +194,7 @@ class TestFilter(unittest.TestCase):
         stree_dict['chr7'][60195160: 60195161] = 1
         filter_results = self.read_filter_compare(
             fn=fn, segment_size=0, unique=True,
-            stree_dict=stree_dict, ttree_dict={})
+            ttree_dict=stree_dict, qtree_dict={})
         self.assertTrue(filter_results[0] == (False, True, False), 
                         f'Failed when reading {fn} [0]')
         self.assertTrue(not any(filter_results[1]), f'Failed when reading {fn} [1]')
@@ -206,7 +206,7 @@ class TestFilter(unittest.TestCase):
         ttree_dict['chr5'][50042645: 50042646] = 1
         filter_results = self.read_filter_compare(
             fn=fn, segment_size=0, unique=True,
-            stree_dict={}, ttree_dict=ttree_dict)
+            ttree_dict={}, qtree_dict=ttree_dict)
         self.assertTrue(not any(filter_results[0]), f'Failed when reading {fn} [0]')
         self.assertTrue(filter_results[1] == (False, False, True), 
                         f'Failed when reading {fn} [1]')

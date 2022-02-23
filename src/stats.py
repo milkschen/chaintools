@@ -27,12 +27,8 @@ def parse_args():
 
 def stats (fn_chain: str, fn_out: str):
     f = open(fn_chain, 'r')
-    # if fn_out:
-    #     fo = open(fn_out, 'w')
-    # else:
-    #     fo = sys.stdout
 
-    print(f'SOURCE\tTARGET\tSCORE\tSTRAND\tSEGLEN', file=sys.stderr)
+    print(f'TARGET\tQUERY\tSCORE\tSTRAND\tSEGLEN', file=sys.stderr)
     num_forward = 0
     num_reversed = 0
     seglen_forward = 0
@@ -56,7 +52,7 @@ def stats (fn_chain: str, fn_out: str):
                 num_reversed += 1
                 seglen_reversed += c.seglen
 
-            msg = f'{c.source}:{c.sstart}-{c.send}\t{c.query}:{c.qstart}-{c.qend}\t{c.score}\t{c.strand}\t{c.seglen}'
+            msg = f'{c.target}:{c.tstart}-{c.tend}\t{c.query}:{c.qstart}-{c.qend}\t{c.score}\t{c.strand}\t{c.seglen}'
             print(msg, file=sys.stderr)
 
             c = None

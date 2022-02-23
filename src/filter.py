@@ -38,10 +38,10 @@ def parse_args():
 
 def filter_core(
     c: utils.Chain, segment_size: int, unique: bool,
-    stree_dict: dict, qtree_dict: dict
+    ttree_dict: dict, qtree_dict: dict
 ) -> list:
     filter_size = False
-    filter_overlap_source = False
+    filter_overlap_target = False
     filter_overlap_query = False
 
     # Check segment size
@@ -50,19 +50,19 @@ def filter_core(
 
     # Check overlap
     if unique:
-        # If two source trees intersect
-        if c.source in stree_dict:
-            for s_intvl in c.stree:
-                if stree_dict[c.source].overlaps(s_intvl):
-                    filter_overlap_source = True
+        # If two target trees intersect
+        if c.target in ttree_dict:
+            for t_intvl in c.ttree:
+                if ttree_dict[c.target].overlaps(t_intvl):
+                    filter_overlap_target = True
                     break
         # If two query trees intersect
         if c.query in qtree_dict:
-            for t_intvl in c.ttree:
-                if qtree_dict[c.query].overlaps(t_intvl):
+            for q_intvl in c.qtree:
+                if qtree_dict[c.query].overlaps(q_intvl):
                     filter_overlap_query = True
                     break
-    return filter_size, filter_overlap_source, filter_overlap_query
+    return filter_size, filter_overlap_target, filter_overlap_query
 
 
 def filter(
@@ -91,34 +91,34 @@ def filter(
         elif len(fields) == 1:
             c.add_record_one(fields)
             
-            filter_size, filter_overlap_source, filter_overlap_query = filter_core(
+            filter_size, filter_overlap_target, filter_overlap_query = filter_core(
                 c=c, segment_size=segment_size, unique=unique,
-                stree_dict=stree_dict, qtree_dict=qtree_dict)
+                ttree_dict=stree_dict, qtree_dict=qtree_dict)
 
-            msg = f'score={c.score}\tsource={c.source}:{c.sstart}-{c.send}\tquery={c.query}:{c.qstart}-{c.qend}\t{c.strand}\t'
+            msg = f'score={c.score}\ttarget={c.target}:{c.tstart}-{c.tend}\tquery={c.query}:{c.qstart}-{c.qend}\t{c.strand}\t'
 
             if filter_size:
                 msg += 'SIZE'
-            elif filter_overlap_source and fn_overlapped_chain:
-                msg += 'OVERLAP_SOURCE'
+            elif filter_overlap_target and fn_overlapped_chain:
+                msg += 'OVERLAP_TARGET'
                 print(c.print_chain(), file=foc)
             elif filter_overlap_query and fn_overlapped_chain:
                 msg += 'OVERLAP_QUERY'
                 print(c.print_chain(), file=foc)
             
             # if pass
-            if not any([filter_size, filter_overlap_source, filter_overlap_query]):
+            if not any([filter_size, filter_overlap_target, filter_overlap_query]):
                 msg += 'PASS'
-                # Update source tree dict
-                if c.source in stree_dict:
-                    stree_dict[c.source] = stree_dict[c.source] | c.stree
+                # Update target tree dict
+                if c.target in stree_dict:
+                    stree_dict[c.target] = stree_dict[c.target] | c.ttree
                 else:
-                    stree_dict[c.source] = c.stree
+                    stree_dict[c.target] = c.ttree
                 # Update query tree dict
                 if c.query in qtree_dict:
-                    qtree_dict[c.query] = qtree_dict[c.query] | c.ttree
+                    qtree_dict[c.query] = qtree_dict[c.query] | c.qtree
                 else:
-                    qtree_dict[c.query] = c.ttree
+                    qtree_dict[c.query] = c.qtree
                 print(c.print_chain(), file=fo)
 
             print(msg, file=sys.stderr)
