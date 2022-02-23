@@ -1,3 +1,14 @@
+'''
+Convert a chain file to the SAM format
+
+Nancy Fisher Hansen
+NIH/NHGRI
+
+Nae-Chyun Chen
+Johns Hopkins University
+
+2021-2022
+'''
 import argparse
 import utils
 import sys

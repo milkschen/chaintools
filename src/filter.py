@@ -1,3 +1,10 @@
+'''
+Filtering a chain file
+
+Nae-Chyun Chen
+Johns Hopkins University
+2022
+'''
 import argparse
 import utils
 import sys
