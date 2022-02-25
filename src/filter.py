@@ -1,5 +1,5 @@
 '''
-Filtering a chain file
+Filter a chain file
 
 Nae-Chyun Chen
 Johns Hopkins University
