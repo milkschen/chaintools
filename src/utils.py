@@ -275,19 +275,16 @@ class Chain(ChainConst):
                 msg += f'{num_m}M'
             if max(dt, dq) > 0:
                 if dt > dq:
-                    msg += f'{dt - dq}I'
+                    msg += f'{dt - dq}D'
                 elif dt < dq:
-                    msg += f'{dq - dt}D'
+                    msg += f'{dq - dt}I'
             return msg
 
-        if self.qstrand == '+':
-            msg = (f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.qstrand}\t'
-                   f'{self.query}\t{self.qlen}\t{self.qstart}\t{self.qend}\t{self.score}\t'
-                   f'{self.score}\t60\tcg:Z:')
-        else:
-            msg = (f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.qstrand}\t'
-                   f'{self.query}\t{self.qlen}\t{self.qlen - self.qend}\t{self.qlen - self.qstart}\t{self.score}\t'
-                   f'{self.score}\t60\tcg:Z:')
+        # aln_block_len = 0
+        num_match = 0
+        total_block_t = 0
+        # total_block_q = 0
+        msg = ''
         intervals = sorted(self.ttree.all_intervals)
         for i, intvl in enumerate(intervals):
             if i == 0:
@@ -297,6 +294,10 @@ class Chain(ChainConst):
                 num_m = pintvl.end - pintvl.begin
             dt = intvl.data[1]
             dq = intvl.data[2]
+            num_match += num_m
+            # aln_block_len += (num_m + max([dt, dq]))
+            total_block_t += (num_m + dt)
+            # total_block_q += (num_m + dq)
             msg = update_cigar(msg, num_m, dt, dq)
 
         if intvl.end == self.tend:
@@ -305,9 +306,22 @@ class Chain(ChainConst):
             num_m = intvl.end - intvl.begin
             dt = self.tend - intvl.end
             dq = self.qend - (intvl.end+intvl.data[0])
+            num_match += num_m
+            # aln_block_len += (num_m + max([dt, dq]))
+            total_block_t += (num_m + dt)
+            # total_block_q += (num_m + dq)
             msg = update_cigar(msg, num_m, dt, dq)
 
-        return msg
+        if self.qstrand == '+':
+            hdr = (f'{self.query}\t{self.qlen}\t{self.qstart}\t{self.qend}\t{self.qstrand}\t'
+                   f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{num_match}\t'
+                   f'{total_block_t}\t255\tcg:Z:')
+        else:
+            hdr = (f'{self.query}\t{self.qlen}\t{self.qlen - self.qend}\t{self.qlen - self.qstart}\t{self.qstrand}\t'
+                   f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{num_match}\t'
+                   f'{total_block_t}\t255\tcg:Z:')
+
+        return hdr+msg
     
     def to_vcf(self, targetref, queryref) -> None:
         msg = ''

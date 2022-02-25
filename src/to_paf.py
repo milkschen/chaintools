@@ -1,3 +1,10 @@
+'''
+Convert a chain file to the PAF format
+
+Nae-Chyun Chen
+Johns Hopkins University
+2022
+'''
 import argparse
 import utils
 import sys
@@ -16,6 +23,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+
 def write_to_paf(fn_chain: str, fn_paf: str):
     f = open(fn_chain, 'r')
     if fn_paf:
@@ -31,7 +39,6 @@ def write_to_paf(fn_chain: str, fn_paf: str):
             c = utils.Chain(fields)
         elif len(fields) == 3:
             c.add_record_three(fields)
-            pass
         elif len(fields) == 1:
             c.add_record_one(fields)
             print(c.to_paf(), file=fo)
