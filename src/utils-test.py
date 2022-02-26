@@ -162,8 +162,6 @@ class TestGenerateBED(unittest.TestCase):
                     if bed_str != '':
                         output_txt += (bed_str + '\n')
                     c.add_record(fields)
-                    if len(fields) == 1:
-                        c = None
         with open(bedfn, 'r') as f:
             bed_txt = ''
             for line in f:
