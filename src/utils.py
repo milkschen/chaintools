@@ -213,16 +213,29 @@ class Chain(ChainConst):
                     f'{self.qend - (intvl.end+intvl.data[0])}\n0')
         return msg
     
-    # def reset_at_break(self, dt: int, dq: int, tend: int, qend: int) -> None:
-    #     self.ttree = intervaltree.IntervalTree()
-    #     self.qtree = intervaltree.IntervalTree()
-    #     self.tstart = self.tend + dt
-    #     self.toffset = self.tstart
-    #     self.tend = tend
-    #     self.qstart = self.qend + dq
-    #     self.qoffset = self.qstart
-    #     self.qend = qend
-
+    # Reset a Chain object at a given breakpoint
+    def reset_at_break(
+        self, dt: int, dq: int, tend: int, qend: int
+    ) -> None:
+        self.ttree = intervaltree.IntervalTree()
+        self.qtree = intervaltree.IntervalTree()
+        self.tstart = self.tend + dt
+        self.toffset = self.tstart
+        self.tend = tend
+        if self.strand == '+':
+            self.qstart = self.qend + dq
+            self.qoffset = self.qstart
+            self.qend = qend
+        else:
+            self.qoffset = self.qend - dq
+            self.qstart = self.qlen - self.qoffset
+            self.qend = self.qlen - qend
+        # Update ID
+        if len(self.id.split('.')) > 1:
+            l = self.id.split('.')
+            self.id = l[0] + '.' + str(int(l[1])+1)
+        else:
+            self.id = self.id + '.1'
 
     # TODO: naechyun
     def try_merge(self, c):
