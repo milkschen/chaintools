@@ -147,6 +147,42 @@ class TestGenerateSAM(unittest.TestCase):
                         f'Failed when generating sam from {fn}')
 
 
+class TestGenerateBED(unittest.TestCase):
+    def generate_and_check(self, chainfn, bedfn, coord):
+        output_txt = ''
+        with open(chainfn, 'r') as f:
+            for line in f:
+                fields = line.split()
+                if len(fields) == 0:
+                    continue
+                elif line.startswith('chain'):
+                    c = utils.Chain(fields)
+                else:
+                    bed_str = c.record_to_bed(fields=fields, coord=coord)
+                    if bed_str != '':
+                        output_txt += (bed_str + '\n')
+                    c.add_record(fields)
+                    if len(fields) == 1:
+                        c = None
+        with open(bedfn, 'r') as f:
+            bed_txt = ''
+            for line in f:
+                bed_txt += line
+        return output_txt == bed_txt
+
+    def test_generate_bed_from_small_target(self):
+        fn = 'testdata/target-query.chain'
+        bedfn = 'testdata/target-query.target.bed'
+        self.assertTrue(self.generate_and_check(fn, bedfn, 'target'),
+                        f'Failed when generating BED (target) from {fn}')
+    
+    def test_generate_bed_from_small_query(self):
+        fn = 'testdata/target-query.chain'
+        bedfn = 'testdata/target-query.query.bed'
+        self.assertTrue(self.generate_and_check(fn, bedfn, 'query'),
+                        f'Failed when generating BED (query) from {fn}')
+
+
 class TestFilter(unittest.TestCase):
     def read_filter_compare(
         self, fn: str, segment_size: int, unique: bool,
