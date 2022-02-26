@@ -135,40 +135,47 @@ class Chain(ChainConst):
         self.strand = '+' if (self.tstrand == '+' and self.qstrand == '+') \
                           else '-'
         self.id = fields[self.CHDR_ID]
-        self.ds = 0
+        self.dt = 0
         self.dq = 0
-
         self.seglen = 0
 
-    def add_record_three(self, fields):
+    def add_record_three(self, fields) -> None:
         segment_size = int(fields[self.C_SIZE])
         if segment_size > 0:
             self.ttree[self.toffset : self.toffset + segment_size] = \
-                (self.qoffset - self.toffset, self.ds, self.dq, False)
+                (self.qoffset - self.toffset, self.dt, self.dq, False)
             if self.strand == '+':
                 self.qtree[self.qoffset: self.qoffset + segment_size] = 1
             else:
                 self.qtree[self.qoffset - segment_size: self.qoffset] = 1
 
-        self.ds = int(fields[self.C_DT])
+        self.dt = int(fields[self.C_DT])
         self.dq = int(fields[self.C_DQ])
-        self.toffset += (segment_size + self.ds)
+        self.toffset += (segment_size + self.dt)
         self.seglen += segment_size
         if self.strand == '+':
             self.qoffset += (segment_size + self.dq)
         else:
             self.qoffset -= (segment_size + self.dq)
 
-    def add_record_one(self, fields):
+    def add_record_one(self, fields) -> None:
         segment_size = int(fields[self.C_SIZE])
         self.seglen += segment_size
         if segment_size > 0:
             self.ttree[self.toffset : self.toffset + segment_size] = \
-                (self.qoffset-self.toffset, self.ds, self.dq)
+                (self.qoffset-self.toffset, self.dt, self.dq)
             if self.strand == '+':
                 self.qtree[self.qoffset: self.qoffset + segment_size] = 1
             else:
                 self.qtree[self.qoffset - segment_size: self.qoffset] = 1
+        self.toffset += segment_size
+        self.qoffset -= segment_size
+
+    def print_hdr(self) -> str:
+        return (f'chain {self.score} '
+               f'{self.target} {self.tlen} {self.tstrand} {self.tstart} {self.tend} '
+               f'{self.query} {self.qlen} {self.qstrand} {self.qstart} {self.qend} '
+               f'{self.id}\n')
 
     def print_chain(self) -> str:
         msg = (f'chain {self.score} '
@@ -186,6 +193,7 @@ class Chain(ChainConst):
                 pintvl = intervals[i-1]
                 msg += (f'{pintvl.end - pintvl.begin}\t{intvl.data[1]}\t{intvl.data[2]}\n')
 
+        # If the size of the last segment is greater than 0
         if intvl.end == self.tend:
             msg += (f'{intvl.end - intvl.begin}\n')
         else:
@@ -193,6 +201,17 @@ class Chain(ChainConst):
                     f'{self.tend - intvl.end}\t'
                     f'{self.qend - (intvl.end+intvl.data[0])}\n0')
         return msg
+    
+    # def reset_at_break(self, dt: int, dq: int, tend: int, qend: int) -> None:
+    #     self.ttree = intervaltree.IntervalTree()
+    #     self.qtree = intervaltree.IntervalTree()
+    #     self.tstart = self.tend + dt
+    #     self.toffset = self.tstart
+    #     self.tend = tend
+    #     self.qstart = self.qend + dq
+    #     self.qoffset = self.qstart
+    #     self.qend = qend
+
 
     # TODO: naechyun
     def try_merge(self, c):
@@ -264,6 +283,12 @@ class Chain(ChainConst):
 
         return True
 
+
+def break_chain(chain: Chain, break_unaligned: bool=True, break_indel: int=0) -> list:
+    list_chains = []
+    return list_chains
+
+
     def to_paf(self) -> None:
         def update_cigar(msg, num_m, dt, dq) -> str:
             if dt != 0 and dq != 0:
@@ -294,6 +319,11 @@ class Chain(ChainConst):
                 num_m = pintvl.end - pintvl.begin
             dt = intvl.data[1]
             dq = intvl.data[2]
+            if dt != 0 and dq != 0:
+                print(msg)
+                print(num_m, dt, dq)
+                print(i, intvl)
+                exit(1)
             num_match += num_m
             # aln_block_len += (num_m + max([dt, dq]))
             total_block_t += (num_m + dt)
