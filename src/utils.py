@@ -139,37 +139,48 @@ class Chain(ChainConst):
         self.dq = 0
         self.seglen = 0
 
-    def add_record_three(self, fields) -> None:
+    def add_record(self, fields) -> None:
         segment_size = int(fields[self.C_SIZE])
+        self.seglen += segment_size
         if segment_size > 0:
             self.ttree[self.toffset : self.toffset + segment_size] = \
-                (self.qoffset - self.toffset, self.dt, self.dq, False)
+                (self.qoffset - self.toffset, self.dt, self.dq)
             if self.strand == '+':
                 self.qtree[self.qoffset: self.qoffset + segment_size] = 1
             else:
                 self.qtree[self.qoffset - segment_size: self.qoffset] = 1
 
-        self.dt = int(fields[self.C_DT])
-        self.dq = int(fields[self.C_DQ])
+        if len(fields) == 3:
+            self.dt = int(fields[self.C_DT])
+            self.dq = int(fields[self.C_DQ])
+        else:
+            self.dt = 0
+            self.dq = 0
         self.toffset += (segment_size + self.dt)
-        self.seglen += segment_size
         if self.strand == '+':
             self.qoffset += (segment_size + self.dq)
         else:
             self.qoffset -= (segment_size + self.dq)
 
+    # TODO: naechyun -- remove old API
+    def add_record_three(self, fields) -> None:
+        self.add_record(fields)
+
+    # TODO: naechyun -- remove old API
     def add_record_one(self, fields) -> None:
-        segment_size = int(fields[self.C_SIZE])
-        self.seglen += segment_size
+        self.add_record(fields)
+
+    def record_to_bed(self, fields: list, coord: str) -> str:
+        segment_size = int(fields[0])
         if segment_size > 0:
-            self.ttree[self.toffset : self.toffset + segment_size] = \
-                (self.qoffset-self.toffset, self.dt, self.dq)
-            if self.strand == '+':
-                self.qtree[self.qoffset: self.qoffset + segment_size] = 1
-            else:
-                self.qtree[self.qoffset - segment_size: self.qoffset] = 1
-        self.toffset += segment_size
-        self.qoffset -= segment_size
+            if coord == 'target':
+                return f'{self.target}\t{self.toffset}\t{self.toffset + segment_size}'
+            elif coord == 'query':
+                if self.strand == '+':
+                    return f'{self.query}\t{self.qoffset}\t{self.qoffset + segment_size}'
+                else:
+                    return f'{self.query}\t{self.qoffset - segment_size}\t{self.qoffset}'
+        return ''
 
     def print_hdr(self) -> str:
         return (f'chain {self.score} '
@@ -282,12 +293,6 @@ class Chain(ChainConst):
             self.qend = self.tend + sorted_intervals[-1][2]
 
         return True
-
-
-def break_chain(chain: Chain, break_unaligned: bool=True, break_indel: int=0) -> list:
-    list_chains = []
-    return list_chains
-
 
     def to_paf(self) -> None:
         def update_cigar(msg, num_m, dt, dq) -> str:
@@ -539,6 +544,11 @@ def break_chain(chain: Chain, break_unaligned: bool=True, break_indel: int=0) ->
         msg += (f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}\t0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{nmtagval}\n')
 
         return msg
+
+
+# def break_chain(chain: Chain, break_unaligned: bool=True, break_indel: int=0) -> list:
+#     list_chains = []
+#     return list_chains
 
 
 def vcf_header(dict_contig_length) -> str:

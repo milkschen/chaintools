@@ -28,7 +28,7 @@ def parse_args():
     return args
 
 
-def to_bed(fn_chain: str, fn_paf: str, coord: str):
+def write_to_bed(fn_chain: str, fn_paf: str, coord: str):
     f = open(fn_chain, 'r')
     if fn_paf:
         fo = open(fn_paf, 'w')
@@ -41,29 +41,13 @@ def to_bed(fn_chain: str, fn_paf: str, coord: str):
             continue
         elif line.startswith('chain'):
             c = utils.Chain(fields)
-        elif len(fields) == 3:
-            segment_size = int(fields[0])
-            if segment_size > 0:
-                if coord == 'target':
-                    print(f'{c.target}\t{c.toffset}\t{c.toffset + segment_size}', file=fo)
-                elif coord == 'query':
-                    if c.strand == '+':
-                        print(f'{c.query}\t{c.qoffset}\t{c.qoffset + segment_size}', file=fo)
-                    else:
-                        print(f'{c.query}\t{c.qoffset - segment_size}\t{c.qoffset}', file=fo)
-            c.add_record_three(fields)
-        elif len(fields) == 1:
-            segment_size = int(fields[0])
-            if segment_size > 0:
-                if coord == 'target':
-                    print(f'{c.target}\t{c.toffset}\t{c.toffset + segment_size}', file=fo)
-                elif coord == 'query':
-                    if c.strand == '+':
-                        print(f'{c.query}\t{c.qoffset}\t{c.qoffset + segment_size}', file=fo)
-                    else:
-                        print(f'{c.query}\t{c.qoffset - segment_size}\t{c.qoffset}', file=fo)
-            c.add_record_one(fields)
-            c = None
+        else:
+            bed_str = c.record_to_bed(fields=fields, coord=coord)
+            if bed_str != '':
+                print(bed_str, file=fo)
+            c.add_record(fields)
+            if len(fields) == 1:
+                c = None
 
 
 if __name__ == '__main__':
@@ -71,4 +55,4 @@ if __name__ == '__main__':
     if args.coord not in ['target', 'query']:
         raise(ValueError, 'Illegal `-coord` value. Should be in ["target", "query"]')
 
-    to_bed(fn_chain=args.chain, fn_paf=args.output, coord=args.coord)
+    write_to_bed(fn_chain=args.chain, fn_paf=args.output, coord=args.coord)
