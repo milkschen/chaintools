@@ -13,7 +13,7 @@ import sys
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-c', '--chain', required=True,
+        '-c', '--chain', default='-',
         help='Path to the chain file'
     )
     parser.add_argument(
@@ -28,10 +28,13 @@ def parse_args():
     return args
 
 
-def write_to_bed(fn_chain: str, fn_paf: str, coord: str):
-    f = open(fn_chain, 'r')
-    if fn_paf:
-        fo = open(fn_paf, 'w')
+def write_to_bed(fn_chain: str, fn_bed: str, coord: str):
+    if fn_chain == '-':
+        f = sys.stdin
+    else:
+        f = open(fn_chain, 'r')
+    if fn_bed:
+        fo = open(fn_bed, 'w')
     else:
         fo = sys.stdout
 
@@ -46,8 +49,6 @@ def write_to_bed(fn_chain: str, fn_paf: str, coord: str):
             if bed_str != '':
                 print(bed_str, file=fo)
             c.add_record(fields)
-            if len(fields) == 1:
-                c = None
 
 
 if __name__ == '__main__':
@@ -55,4 +56,4 @@ if __name__ == '__main__':
     if args.coord not in ['target', 'query']:
         raise(ValueError, 'Illegal `-coord` value. Should be in ["target", "query"]')
 
-    write_to_bed(fn_chain=args.chain, fn_paf=args.output, coord=args.coord)
+    write_to_bed(fn_chain=args.chain, fn_bed=args.output, coord=args.coord)

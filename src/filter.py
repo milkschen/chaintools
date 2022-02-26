@@ -13,7 +13,7 @@ import sys
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-c', '--chain', required=True,
+        '-c', '--chain', default='',
         help='Path to the chain file'
     )
     parser.add_argument(
@@ -72,7 +72,10 @@ def filter(
     stree_dict = {}
     qtree_dict = {}
 
-    f = open(fn_chain, 'r')
+    if fn_chain == '-':
+        f = sys.stdin
+    else:
+        f = open(fn_chain, 'r')
     if fn_out:
         fo = open(fn_out, 'w')
     else:

@@ -16,7 +16,7 @@ import sys
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-c', '--chain', required=True,
+        '-c', '--chain', default='',
         help='Path to the chain file'
     )
     parser.add_argument(
@@ -35,7 +35,10 @@ def parse_args():
     return args
 
 def write_to_vcf(fn_chain: str, fn_vcf: str, fn_targetfasta: str, fn_queryfasta: str):
-    f = open(fn_chain, 'r')
+    if fn_chain == '-':
+        f = sys.stdin
+    else:
+        f = open(fn_chain, 'r')
     if fn_vcf:
         fo = open(fn_vcf, 'w')
     else:

@@ -9,7 +9,7 @@ import re
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-c', '--chain', required=True,
+        '-c', '--chain', default='',
         help='Path to the input chain file.'
     )
     parser.add_argument(
@@ -21,8 +21,17 @@ def parse_args():
 
 
 def invert(in_fn: str, out_fn: str) -> None:
-    f = open(in_fn, 'r')
-    fo = open(out_fn, 'w')
+    if in_fn == '-':
+        f = sys.stdin
+    else:
+        f = open(in_fn, 'r')
+    if out_fn:
+        fo = open(out_fn, 'w')
+    else:
+        fo = sys.stdout
+
+    # f = open(in_fn, 'r')
+    # fo = open(out_fn, 'w')
     for line in f:
         if not line:
             continue

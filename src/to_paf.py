@@ -13,7 +13,7 @@ import sys
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-c', '--chain', required=True,
+        '-c', '--chain', default='-',
         help='Path to the chain file'
     )
     parser.add_argument(
@@ -25,7 +25,10 @@ def parse_args():
 
 
 def write_to_paf(fn_chain: str, fn_paf: str):
-    f = open(fn_chain, 'r')
+    if fn_chain == '-':
+        f = sys.stdin
+    else:
+        f = open(fn_chain, 'r')
     if fn_paf:
         fo = open(fn_paf, 'w')
     else:
