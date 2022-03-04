@@ -25,8 +25,10 @@ def read_fasta(ref_fn: str) -> dict:
     return ref
 
 def fasta_reader(ref_fn: str) -> pysam.FastaFile:
-    f = pysam.FastaFile(ref_fn)
-    return f
+    if ref_fn:
+        return pysam.FastaFile(ref_fn)
+    else:
+        return None
 
 
 def reverse_complement(seq: str) -> str:
@@ -309,7 +311,7 @@ class Chain(ChainConst):
 
     def to_paf(
         self, targetref: pysam.FastaFile, queryref: pysam.FastaFile
-    ) -> None:
+    ) -> str:
         msg = ''
         cigarstring = ''
         nmtagval = 0
@@ -391,55 +393,60 @@ class Chain(ChainConst):
 
             # now add X/= counts to cigar within matched segment:
             # zero-based, half-open start/end of matched segment
-
             segmentlength = intvl.end - intvl.begin
-            if self.strand == "+":
-                alignseq_qstart = intvl.begin + intvl.data[0]
-                alignseq_qend = intvl.end + intvl.data[0]
-                alignseq_q = queryref.fetch(reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
-                queryendpos += segmentlength
-            else:
-                alignseq_qend = intvl.begin + intvl.data[0]
-                alignseq_qstart = alignseq_qend - (intvl.end - intvl.begin)
-                alignseq_q = queryref.fetch(reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
-                alignseq_q = reverse_complement(alignseq_q)
-                queryendpos -= segmentlength
-
-            alignseq_tstart = intvl.begin
-            alignseq_tend = intvl.end
-            alignseq_t = targetref.fetch(reference=rname, start=alignseq_tstart, end=alignseq_tend).upper()
-
-            nummatches = 0
-            nummismatches = 0
-            for i in range(segmentlength):
-                if alignseq_q[i] == alignseq_t[i]:
-                    if nummismatches > 0:
-                        cigarstring += f'{nummismatches}X'
-                        nmtagval += nummismatches
-                        nummismatches = 0
-                    nummatches += 1
+            if queryref and targetref:
+                if self.strand == "+":
+                    alignseq_qstart = intvl.begin + intvl.data[0]
+                    alignseq_qend = intvl.end + intvl.data[0]
+                    alignseq_q = queryref.fetch(reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
+                    queryendpos += segmentlength
                 else:
-                    if nummatches > 0:
-                        cigarstring += f'{nummatches}='
-                        nummatches = 0
-                    nummismatches += 1
-            if nummatches > 0:
-                cigarstring += f'{nummatches}='
-                total_num_match += nummatches
-                total_block_t += nummatches
-            elif nummismatches > 0:
-                cigarstring += f'{nummismatches}X'
-                nmtagval += nummismatches
-                total_block_t += nummismatches
+                    alignseq_qend = intvl.begin + intvl.data[0]
+                    alignseq_qstart = alignseq_qend - (intvl.end - intvl.begin)
+                    alignseq_q = queryref.fetch(reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
+                    alignseq_q = reverse_complement(alignseq_q)
+                    queryendpos -= segmentlength
 
-        # write last alignment line
-        if self.strand == '+':
-            # righthardclip = qlen - queryendpos + 1
-            seq = queryref.fetch(reference=qname, start=querystartpos-1, end=queryendpos-1).upper()
-        else:
-            # righthardclip = queryendpos
-            seq = queryref.fetch(reference=qname, start=queryendpos, end=querystartpos).upper()
-            seq = reverse_complement(seq)
+                alignseq_tstart = intvl.begin
+                alignseq_tend = intvl.end
+                alignseq_t = targetref.fetch(reference=rname, start=alignseq_tstart, end=alignseq_tend).upper()
+
+                nummatches = 0
+                nummismatches = 0
+                for i in range(segmentlength):
+                    if alignseq_q[i] == alignseq_t[i]:
+                        if nummismatches > 0:
+                            cigarstring += f'{nummismatches}X'
+                            nmtagval += nummismatches
+                            nummismatches = 0
+                        nummatches += 1
+                    else:
+                        if nummatches > 0:
+                            cigarstring += f'{nummatches}='
+                            nummatches = 0
+                        nummismatches += 1
+                if nummatches > 0:
+                    cigarstring += f'{nummatches}='
+                    total_num_match += nummatches
+                    total_block_t += nummatches
+                elif nummismatches > 0:
+                    cigarstring += f'{nummismatches}X'
+                    nmtagval += nummismatches
+                    total_block_t += nummismatches
+            else:
+                # If no reference sequences are provided
+                cigarstring += f'{segmentlength}M'
+                total_num_match += segmentlength
+                total_block_t += segmentlength
+            
+        # # write last alignment line
+        # if self.strand == '+':
+        #     # righthardclip = qlen - queryendpos + 1
+        #     seq = queryref.fetch(reference=qname, start=querystartpos-1, end=queryendpos-1).upper()
+        # else:
+        #     # righthardclip = queryendpos
+        #     seq = queryref.fetch(reference=qname, start=queryendpos, end=querystartpos).upper()
+        #     seq = reverse_complement(seq)
         # fullcigar = f'{lefthardclip}H' + cigarstring + f'{righthardclip}H'
         fullcigar = cigarstring
         # msg += (f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}\t0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{nmtagval}\n')
