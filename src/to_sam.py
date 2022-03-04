@@ -55,12 +55,12 @@ def write_to_sam(fn_chain: str, fn_sam: str, fn_targetfasta: str, fn_queryfasta:
             continue
         elif line.startswith('chain'):
             c = utils.Chain(fields)
-        elif len(fields) == 3:
-            c.add_record_three(fields)
-        elif len(fields) == 1:
-            c.add_record_one(fields)
-            print(c.to_sam(targetref, queryref), file=fo, end='')
-            c = None
+        else:
+            c.add_record(fields)
+            if len(fields) == 1:
+                print(c.to_sam(targetref, queryref), file=fo, end='')
+                c = None
+
 
 if __name__ == '__main__':
     args = parse_args()
