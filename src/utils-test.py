@@ -185,6 +185,20 @@ class TestGeneratePAF(unittest.TestCase):
         self.assertTrue(self.generate_and_check(fn, '', '', paffn),
                         f'Failed when generating PAF from {fn}')
 
+    def test_generate_paf_from_forward_no_ref(self):
+        fn = 'testdata/forward.chain'
+        paffn = 'testdata/forward.no_ref.paf'
+        
+        self.assertTrue(self.generate_and_check(fn, '', '', paffn),
+                        f'Failed when generating PAF from {fn}')
+
+    def test_generate_paf_from_reversed_no_ref(self):
+        fn = 'testdata/reversed.chain'
+        paffn = 'testdata/reversed.no_ref.paf'
+        
+        self.assertTrue(self.generate_and_check(fn, '', '', paffn),
+                        f'Failed when generating PAF from {fn}')
+
 
 class TestGenerateBED(unittest.TestCase):
     def generate_and_check(self, chainfn, bedfn, coord):
