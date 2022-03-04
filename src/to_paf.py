@@ -6,7 +6,6 @@ Johns Hopkins University
 2022
 '''
 import argparse
-from xxlimited import Str
 import pysam
 import utils
 import sys
@@ -51,7 +50,7 @@ def write_to_paf(
                 c = None
 
 
-def write_to_paf0(
+def write_to_paf_io(
     fn_chain: str, fn_paf: str,
     fn_targetfasta: str='', fn_queryfasta: str=''
 ) -> None:
@@ -64,42 +63,8 @@ def write_to_paf0(
     else:
         fo = sys.stdout
 
-    if fn_targetfasta:
-        targetref = utils.fasta_reader(fn_targetfasta)
-    if fn_queryfasta:
-        queryref = utils.fasta_reader(fn_queryfasta)
-
-    for line in f:
-        fields = line.split()
-        if len(fields) == 0:
-            continue
-        elif line.startswith('chain'):
-            c = utils.Chain(fields)
-        else:
-            c.add_record(fields)
-            if len(fields) == 1:
-                print(c.to_paf(targetref=targetref, queryref=queryref),
-                  file=fo)
-                c = None
-
-
-if __name__ == '__main__':
-    args = parse_args()
-    # write_to_paf0(
-    #     fn_chain=args.chain, fn_paf=args.output,
-    #     fn_targetfasta=args.targetfasta, fn_queryfasta=args.queryfasta)
-
-    if args.chain == '-':
-        f = sys.stdin
-    else:
-        f = open(args.chain, 'r')
-    if args.output:
-        fo = open(args.output, 'w')
-    else:
-        fo = sys.stdout
-
-    targetref = utils.fasta_reader(args.targetfasta)
-    queryref = utils.fasta_reader(args.queryfasta)
+    targetref = utils.fasta_reader(fn_targetfasta)
+    queryref = utils.fasta_reader(fn_queryfasta)
 
     out = write_to_paf(f=f, targetref=targetref, queryref=queryref)
     while True:
@@ -107,3 +72,10 @@ if __name__ == '__main__':
             print(next(out), file=fo)
         except StopIteration:
             break
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    write_to_paf_io(
+        fn_chain=args.chain, fn_paf=args.output,
+        fn_targetfasta=args.targetfasta, fn_queryfasta=args.queryfasta)
