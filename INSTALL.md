@@ -13,3 +13,11 @@ conda install -c anaconda pandas
 # pip
 pip install pandas
 ```
+
+Install pysam
+```
+# conda
+conda install -c bioconda pysam
+# pip
+pip install pysam
+```

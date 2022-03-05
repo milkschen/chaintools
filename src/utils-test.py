@@ -9,11 +9,13 @@ NIH/NHGRI
 
 2021-2022
 '''
-import filter
 import intervaltree
 import unittest
-import utils
 import sys
+# chaintools
+import filter
+import to_paf
+import utils
 
 
 class TestReadingChain(unittest.TestCase):
@@ -145,6 +147,57 @@ class TestGenerateSAM(unittest.TestCase):
         
         self.assertTrue(self.generate_and_check(fn, targetfn, queryfn, samfn),
                         f'Failed when generating sam from {fn}')
+
+
+class TestGeneratePAF(unittest.TestCase):
+    def generate_and_check(self, chainfn, targetfn, queryfn, samfn):
+        f = open(chainfn, 'r')
+        targetref = utils.fasta_reader(targetfn)
+        queryref = utils.fasta_reader(queryfn)
+        output_txt = ''
+        out = to_paf.write_to_paf(f, targetref, queryref)
+        while True:
+            try:
+                output_txt += (next(out) + '\n')
+            except StopIteration:
+                break
+        f.close()
+        with open(samfn, 'r') as f:
+            paf_txt = ''
+            for line in f:
+                paf_txt += line
+
+        return output_txt == paf_txt
+
+    def test_generate_paf_from_small(self):
+        fn = 'testdata/target-query.chain'
+        targetfn = 'testdata/target.fasta'
+        queryfn = 'testdata/query.fasta'
+        paffn = 'testdata/target-query.paf'
+        
+        self.assertTrue(self.generate_and_check(fn, targetfn, queryfn, paffn),
+                        f'Failed when generating PAF from {fn}')
+    
+    def test_generate_paf_from_small_no_ref(self):
+        fn = 'testdata/target-query.chain'
+        paffn = 'testdata/target-query.no_ref.paf'
+        
+        self.assertTrue(self.generate_and_check(fn, '', '', paffn),
+                        f'Failed when generating PAF from {fn}')
+
+    def test_generate_paf_from_forward_no_ref(self):
+        fn = 'testdata/forward.chain'
+        paffn = 'testdata/forward.no_ref.paf'
+        
+        self.assertTrue(self.generate_and_check(fn, '', '', paffn),
+                        f'Failed when generating PAF from {fn}')
+
+    def test_generate_paf_from_reversed_no_ref(self):
+        fn = 'testdata/reversed.chain'
+        paffn = 'testdata/reversed.no_ref.paf'
+        
+        self.assertTrue(self.generate_and_check(fn, '', '', paffn),
+                        f'Failed when generating PAF from {fn}')
 
 
 class TestGenerateBED(unittest.TestCase):
