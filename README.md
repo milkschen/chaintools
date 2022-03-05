@@ -25,7 +25,7 @@ Lift-over software such as [UCSC LiftOver](https://genome.ucsc.edu/cgi-bin/hgLif
 git clone git@github.com:milkschen/chaintools.git
 ```
 
-* Dependencies: [intervaltree](https://github.com/chaimleib/intervaltree) and [pandas](https://pandas.pydata.org). See [INSTALL.md](INSTALL.md) for instructions
+* Dependencies: [intervaltree](https://github.com/chaimleib/intervaltree), [pysam](https://pysam.readthedocs.io/en/latest/), and [pandas](https://pandas.pydata.org). See [INSTALL.md](INSTALL.md) for instructions
 
 
 
