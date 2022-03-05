@@ -25,7 +25,7 @@ Lift-over software such as [UCSC LiftOver](https://genome.ucsc.edu/cgi-bin/hgLif
 git clone git@github.com:milkschen/chaintools.git
 ```
 
-* Dependencies: [intervaltree](https://github.com/chaimleib/intervaltree), [pysam](https://pysam.readthedocs.io/en/latest/), and [pandas](https://pandas.pydata.org). See [INSTALL.md](INSTALL.md) for instructions
+* Dependencies: [intervaltree](https://github.com/chaimleib/intervaltree), [pandas](https://pandas.pydata.org), and [pysam](https://pysam.readthedocs.io/en/latest/). See [INSTALL.md](INSTALL.md) for instructions.
 
 
 
@@ -67,7 +67,7 @@ Convert a chain file to the ([PAF format](https://github.com/lh3/miniasm/blob/ma
 The target chain is converted as the target sequence, and the query chain is converted as the query sequence.
 
 If both `target.fa` and `query.fa` are provided, this script checks the reference sequences and updates the cigar (`cg:Z` tag) using `[=XID]+` operators.
-Otherwise, it uses `[MID]+` and `X` at chain break points. A breakpoint is a gap wrt both target and query, e.g., `149 341 2894`.
+Otherwise, it uses `[MID]+` and `[X]+` at chain break points. A breakpoint is a gap wrt both target and query, e.g., `149 341 2894`.
 
 ```
 python src/to_paf.py -c <in.chain> -o <out.paf> [-t <target.fa> -q <query.fa>]
