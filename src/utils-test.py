@@ -15,6 +15,7 @@ import sys
 # chaintools
 import filter
 import to_paf
+import to_sam
 import utils
 
 
@@ -118,25 +119,18 @@ class TestGenerateSAM(unittest.TestCase):
         output_txt = ''
         targetref = utils.fasta_reader(targetfn)
         queryref = utils.fasta_reader(queryfn)
-        output_txt += utils.sam_header(utils.get_target_entries(chainfn))
+        output_txt += (utils.sam_header(utils.get_target_entries(chainfn)) + '\n')
         with open(chainfn, 'r') as f:
-            for line in f:
-                fields = line.split()
-                if len(fields) == 0:
-                    continue
-                elif line.startswith('chain'):
-                    c = utils.Chain(fields)
-                elif len(fields) == 3:
-                    c.add_record_three(fields)
-                elif len(fields) == 1:
-                    c.add_record_one(fields)
-                    output_txt += c.to_sam(targetref, queryref)
-                    c = None
+            out = to_sam.write_to_sam(f, targetref, queryref)
+            while True:
+                try:
+                    output_txt += (next(out) + '\n')
+                except StopIteration:
+                    break
         with open(samfn, 'r') as f:
             sam_txt = ''
             for line in f:
                 sam_txt += line
-
         return output_txt == sam_txt
 
     def test_generate_sam_from_small(self):
@@ -151,17 +145,16 @@ class TestGenerateSAM(unittest.TestCase):
 
 class TestGeneratePAF(unittest.TestCase):
     def generate_and_check(self, chainfn, targetfn, queryfn, samfn):
-        f = open(chainfn, 'r')
         targetref = utils.fasta_reader(targetfn)
         queryref = utils.fasta_reader(queryfn)
         output_txt = ''
-        out = to_paf.write_to_paf(f, targetref, queryref)
-        while True:
-            try:
-                output_txt += (next(out) + '\n')
-            except StopIteration:
-                break
-        f.close()
+        with open(chainfn, 'r') as f:
+            out = to_paf.write_to_paf(f, targetref, queryref)
+            while True:
+                try:
+                    output_txt += (next(out) + '\n')
+                except StopIteration:
+                    break
         with open(samfn, 'r') as f:
             paf_txt = ''
             for line in f:
