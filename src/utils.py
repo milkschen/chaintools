@@ -523,8 +523,7 @@ class Chain(ChainConst):
                     else:
                         qpos = alignseq_qend - i
                     msg += (f'{rname}\t{rpos}\t.\t{alignseq_t[i]}\t{alignseq_q[i]}\t.\tAUTO\tALN_SCORE={self.score};ALN_QUERY={qname};ALN_QPOS={qpos};ALN_STRAND={self.strand}\n')
-
-        return msg
+        return msg.rstrip()
     
     def to_sam(self, targetref, queryref) -> None:
         msg = ''
@@ -629,7 +628,7 @@ def vcf_header(dict_contig_length) -> str:
     header += (f'##INFO=<ID=ALN_DQ,Number=A,Type=Integer,Description="Length of gap on query sequence.">\n')
     header += (f'#CHROM       POS     ID      REF     ALT     QUAL    FILTER  INFO\n')
 
-    return header
+    return header.rstrip()
 
 
 def sam_header(dict_contig_length) -> str:

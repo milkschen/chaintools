@@ -17,6 +17,7 @@ import filter
 import to_bed
 import to_paf
 import to_sam
+import to_vcf
 import utils
 
 
@@ -32,13 +33,11 @@ class TestReadingChain(unittest.TestCase):
                     continue
                 elif line.startswith('chain'):
                     c = utils.Chain(fields)
-                elif len(fields) == 3:
-                    c.add_record_three(fields)
-                elif len(fields) == 1:
-                    c.add_record_one(fields)
-                    output_txt += c.print_chain()
-                    output_txt += '\n'
-                    c = None
+                else:
+                    c.add_record(fields)
+                    if len(fields) == 1:
+                        output_txt += (c.print_chain() + '\n')
+                        c = None
         
         # A tab and a space are considered to be indifferent
         input_txt = input_txt.replace('\t', ' ').rstrip()
@@ -79,20 +78,14 @@ class TestGenerateVcf(unittest.TestCase):
     def generate_and_check(self, chainfn, targetfn, queryfn, vcffn):
         targetref = utils.fasta_reader(targetfn)
         queryref = utils.fasta_reader(queryfn)
-        output_txt = utils.vcf_header(utils.get_target_entries(chainfn))
+        output_txt = (utils.vcf_header(utils.get_target_entries(chainfn)) + '\n')
         with open(chainfn, 'r') as f:
-            for line in f:
-                fields = line.split()
-                if len(fields) == 0:
-                    continue
-                elif line.startswith('chain'):
-                    c = utils.Chain(fields)
-                elif len(fields) == 3:
-                    c.add_record_three(fields)
-                elif len(fields) == 1:
-                    c.add_record_one(fields)
-                    output_txt += c.to_vcf(targetref, queryref)
-                    c = None
+            out = to_vcf.write_to_vcf(f, targetref, queryref)
+            while True:
+                try:
+                    output_txt += (next(out) + '\n')
+                except StopIteration:
+                    break
         with open(vcffn, 'r') as f:
             vcf_txt = ''
             output_lines = output_txt.split('\n')
