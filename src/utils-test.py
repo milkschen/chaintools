@@ -328,7 +328,7 @@ class TestSplit(unittest.TestCase):
                 return False
         return output_txt == split_txt
 
-    def test_generate_bed_from_forward(self):
+    def test_split_from_forward(self):
         fn = 'testdata/forward.chain'
         splitfn = 'testdata/forward-split.chain'
         self.assertTrue(
@@ -337,7 +337,7 @@ class TestSplit(unittest.TestCase):
                 min_bp=1000, min_gap=10000),
             f'Failed when splitting {fn}')
 
-    def test_generate_bed_from_reversed(self):
+    def test_split_from_reversed(self):
         fn = 'testdata/reversed.chain'
         splitfn = 'testdata/reversed-split.chain'
         self.assertTrue(
@@ -346,7 +346,7 @@ class TestSplit(unittest.TestCase):
                 min_bp=1000, min_gap=10000),
             f'Failed when splitting {fn}')
 
-    def test_generate_bed_from_reverse2(self):
+    def test_split_from_reverse2(self):
         fn = 'testdata/reversed2.chain'
         splitfn = 'testdata/reversed2-split.chain'
         self.assertTrue(
@@ -354,6 +354,26 @@ class TestSplit(unittest.TestCase):
                 chainfn=fn, splitfn=splitfn,
                 min_bp=1000, min_gap=10000),
             f'Failed when splitting {fn}')
+
+    def test_check_split_min_bp(self):
+        self.assertTrue(
+            split.check_split(
+                dt=101, dq=90, min_bp=89, min_gap=1000),
+            f'Failed: filter::check_split()')
+        self.assertFalse(
+            split.check_split(
+                dt=101, dq=90, min_bp=90, min_gap=1000),
+            f'Failed: filter::check_split()')
+    
+    def test_check_split_min_gap(self):
+        self.assertTrue(
+            split.check_split(
+                dt=1001, dq=0, min_bp=89, min_gap=1000),
+            f'Failed: filter::check_split()')
+        self.assertFalse(
+            split.check_split(
+                dt=10, dq=0, min_bp=0, min_gap=1000),
+            f'Failed: filter::check_split()')
 
 
 if __name__ == '__main__':
