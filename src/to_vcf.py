@@ -79,34 +79,6 @@ def write_to_vcf_io(
             break
 
 
-def write_to_vcf2(fn_chain: str, fn_vcf: str, fn_targetfasta: str, fn_queryfasta: str):
-    if fn_chain == '-':
-        f = sys.stdin
-    else:
-        f = open(fn_chain, 'r')
-    if fn_vcf:
-        fo = open(fn_vcf, 'w')
-    else:
-        fo = sys.stdout
-
-    print(utils.vcf_header(utils.get_target_entries(fn_chain)), file=fo, end='')
-
-    targetref = utils.fasta_reader(fn_targetfasta)
-    queryref = utils.fasta_reader(fn_queryfasta)
-
-    for line in f:
-        fields = line.split()
-        if len(fields) == 0:
-            continue
-        elif line.startswith('chain'):
-            c = utils.Chain(fields)
-        elif len(fields) == 3:
-            c.add_record_three(fields)
-        elif len(fields) == 1:
-            c.add_record_one(fields)
-            print(c.to_vcf(targetref, queryref), file=fo, end='')
-            c = None
-
 if __name__ == '__main__':
     args = parse_args()
     write_to_vcf_io(
