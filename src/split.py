@@ -8,6 +8,7 @@ Johns Hopkins University
 import argparse
 import utils
 import sys
+from typing import TextIO
 
 
 def parse_args():
@@ -32,6 +33,16 @@ def parse_args():
     return args
 
 
+''' Check if a chain line (3-field) should be split
+
+Inputs:
+    - dt: gap size wrt target
+    - dq: gap size wrt query
+    - min_bp: min breakpoint size that we split. An alignment 
+              breakpoint refers to a chain segment gap that is
+              not simply indelic, such as `149 341 2894`
+    - min_gap: min gap size that we split
+'''
 def check_split(
     dt: int, dq: int, min_bp: int, min_gap: int
 ) -> bool:
@@ -44,37 +55,21 @@ def check_split(
     return False
 
 
-# TODO: naechyun -- add tests
 def split_chain(
-    fn_chain: str, fn_out: str, min_bp: int, min_gap: int
-) -> None:
-    if fn_chain == '-':
-        f = sys.stdin
-    else:
-        f = open(fn_chain, 'r')
-
-    if fn_out:
-        fo = open(fn_out, 'w')
-    else:
-        fo = sys.stdout
-
-    num_orig_chain = 0
-    num_split_chain = 0
-    for i, line in enumerate(f):
+    f: TextIO,  min_bp: int, min_gap: int
+) -> str:
+    for line in f:
         fields = line.split()
         if len(fields) == 0:
-            continue
-        elif line.startswith('chain'):
+            pass
+        elif fields[0] == 'chain':
             c = utils.Chain(fields)
-            num_orig_chain += 1
         elif len(fields) == 3:
             dt = int(fields[1])
             dq = int(fields[2])
             # Split a chain object if encountering an alignment breakpoint. 
-            # An alignment breakpoint refers to a chain segment gap that is not simple indelic, 
-            # such as `149 341 2894`
-            if check_split(dt=dt, dq=dq, min_bp=min_bp, min_gap=min_gap):
-                # print(f'  Split at line {i}:\t{line.rstrip()}', file=sys.stderr)
+            if check_split(
+                dt=dt, dq=dq, min_bp=min_bp, min_gap=min_gap):
                 c.add_record([fields[0]])
                 tmp_tend = c.tend
                 tmp_qend = c.qend
@@ -83,8 +78,7 @@ def split_chain(
                     c.qend = c.qoffset
                 else:
                     c.qend = c.qlen - c.qoffset
-                print(c.print_chain(), file=fo)
-                num_split_chain += 1
+                yield(c.print_chain())
                 # Reset
                 c.reset_at_break(
                     dt=dt, dq=dq, tend=tmp_tend, qend=tmp_qend)
@@ -92,19 +86,37 @@ def split_chain(
                 c.add_record(fields)
         elif len(fields) == 1:
             c.add_record(fields)
-            print(c.print_chain(), file=fo)
-            num_split_chain += 1
+            yield(c.print_chain())
+            c = None
 
-    print(f'Num original chains: {num_orig_chain}', file=sys.stderr)
-    print(f'Num split chains   : {num_split_chain}', file=sys.stderr)
+
+def split_chain_io(
+    fn_chain: str, fn_out: str,
+    min_bp: int, min_gap: int
+) -> None:
+    if fn_chain == '-':
+        f = sys.stdin
+    else:
+        f = open(fn_chain, 'r')
+    if fn_out:
+        fo = open(fn_out, 'w')
+    else:
+        fo = sys.stdout
+
+    out = split_chain(f=f, min_bp=min_bp, min_gap=min_gap)
+    while True:
+        try:
+            print(next(out), file=fo)
+        except StopIteration:
+            break
 
 
 if __name__ == '__main__':
     args = parse_args()
-    print(f'Split parameters:')
+    print(f'Split parameters:', file=sys.stderr)
     print(f' * min_bp : {args.min_bp}', file=sys.stderr)
     print(f' * min_gap: {args.min_gap}', file=sys.stderr)
 
-    split_chain(
+    split_chain_io(
         fn_chain=args.chain, fn_out=args.output,
         min_bp=args.min_bp, min_gap=args.min_gap)

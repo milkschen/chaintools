@@ -18,6 +18,7 @@ import to_bed
 import to_paf
 import to_sam
 import to_vcf
+import split
 import utils
 
 
@@ -303,6 +304,56 @@ class TestFilter(unittest.TestCase):
         self.assertTrue(not any(filter_results[0]), f'Failed when reading {fn} [0]')
         self.assertTrue(filter_results[1] == (False, False, True), 
                         f'Failed when reading {fn} [1]')
+
+
+class TestSplit(unittest.TestCase):
+    def generate_and_check(self, chainfn, splitfn, min_bp, min_gap):
+        output_txt = ''
+        with open(chainfn, 'r') as f:
+            out = split.split_chain(f=f, min_bp=min_bp, min_gap=min_gap)
+            while True:
+                try:
+                    output_txt += (next(out) + '\n')
+                except StopIteration:
+                    break
+        with open(splitfn, 'r') as f:
+            split_txt = ''
+            for line in f:
+                split_txt += line
+        oo = output_txt.split('\n')
+        for i, l in enumerate(split_txt.split('\n')):
+            if l != oo[i]:
+                print(l)
+                print(oo[i])
+                return False
+        return output_txt == split_txt
+
+    def test_generate_bed_from_forward(self):
+        fn = 'testdata/forward.chain'
+        splitfn = 'testdata/forward-split.chain'
+        self.assertTrue(
+            self.generate_and_check(
+                chainfn=fn, splitfn=splitfn,
+                min_bp=1000, min_gap=10000),
+            f'Failed when splitting {fn}')
+
+    def test_generate_bed_from_reversed(self):
+        fn = 'testdata/reversed.chain'
+        splitfn = 'testdata/reversed-split.chain'
+        self.assertTrue(
+            self.generate_and_check(
+                chainfn=fn, splitfn=splitfn,
+                min_bp=1000, min_gap=10000),
+            f'Failed when splitting {fn}')
+
+    def test_generate_bed_from_reverse2(self):
+        fn = 'testdata/reversed2.chain'
+        splitfn = 'testdata/reversed2-split.chain'
+        self.assertTrue(
+            self.generate_and_check(
+                chainfn=fn, splitfn=splitfn,
+                min_bp=1000, min_gap=10000),
+            f'Failed when splitting {fn}')
 
 
 if __name__ == '__main__':
