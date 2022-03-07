@@ -14,7 +14,10 @@ import unittest
 import sys
 # chaintools
 import filter
+import to_bed
 import to_paf
+import to_sam
+import to_vcf
 import utils
 
 
@@ -30,13 +33,11 @@ class TestReadingChain(unittest.TestCase):
                     continue
                 elif line.startswith('chain'):
                     c = utils.Chain(fields)
-                elif len(fields) == 3:
-                    c.add_record_three(fields)
-                elif len(fields) == 1:
-                    c.add_record_one(fields)
-                    output_txt += c.print_chain()
-                    output_txt += '\n'
-                    c = None
+                else:
+                    c.add_record(fields)
+                    if len(fields) == 1:
+                        output_txt += (c.print_chain() + '\n')
+                        c = None
         
         # A tab and a space are considered to be indifferent
         input_txt = input_txt.replace('\t', ' ').rstrip()
@@ -77,20 +78,14 @@ class TestGenerateVcf(unittest.TestCase):
     def generate_and_check(self, chainfn, targetfn, queryfn, vcffn):
         targetref = utils.fasta_reader(targetfn)
         queryref = utils.fasta_reader(queryfn)
-        output_txt = utils.vcf_header(utils.get_target_entries(chainfn))
+        output_txt = (utils.vcf_header(utils.get_target_entries(chainfn)) + '\n')
         with open(chainfn, 'r') as f:
-            for line in f:
-                fields = line.split()
-                if len(fields) == 0:
-                    continue
-                elif line.startswith('chain'):
-                    c = utils.Chain(fields)
-                elif len(fields) == 3:
-                    c.add_record_three(fields)
-                elif len(fields) == 1:
-                    c.add_record_one(fields)
-                    output_txt += c.to_vcf(targetref, queryref)
-                    c = None
+            out = to_vcf.write_to_vcf(f, targetref, queryref)
+            while True:
+                try:
+                    output_txt += (next(out) + '\n')
+                except StopIteration:
+                    break
         with open(vcffn, 'r') as f:
             vcf_txt = ''
             output_lines = output_txt.split('\n')
@@ -118,25 +113,18 @@ class TestGenerateSAM(unittest.TestCase):
         output_txt = ''
         targetref = utils.fasta_reader(targetfn)
         queryref = utils.fasta_reader(queryfn)
-        output_txt += utils.sam_header(utils.get_target_entries(chainfn))
+        output_txt += (utils.sam_header(utils.get_target_entries(chainfn)) + '\n')
         with open(chainfn, 'r') as f:
-            for line in f:
-                fields = line.split()
-                if len(fields) == 0:
-                    continue
-                elif line.startswith('chain'):
-                    c = utils.Chain(fields)
-                elif len(fields) == 3:
-                    c.add_record_three(fields)
-                elif len(fields) == 1:
-                    c.add_record_one(fields)
-                    output_txt += c.to_sam(targetref, queryref)
-                    c = None
+            out = to_sam.write_to_sam(f, targetref, queryref)
+            while True:
+                try:
+                    output_txt += (next(out) + '\n')
+                except StopIteration:
+                    break
         with open(samfn, 'r') as f:
             sam_txt = ''
             for line in f:
                 sam_txt += line
-
         return output_txt == sam_txt
 
     def test_generate_sam_from_small(self):
@@ -151,17 +139,16 @@ class TestGenerateSAM(unittest.TestCase):
 
 class TestGeneratePAF(unittest.TestCase):
     def generate_and_check(self, chainfn, targetfn, queryfn, samfn):
-        f = open(chainfn, 'r')
         targetref = utils.fasta_reader(targetfn)
         queryref = utils.fasta_reader(queryfn)
         output_txt = ''
-        out = to_paf.write_to_paf(f, targetref, queryref)
-        while True:
-            try:
-                output_txt += (next(out) + '\n')
-            except StopIteration:
-                break
-        f.close()
+        with open(chainfn, 'r') as f:
+            out = to_paf.write_to_paf(f, targetref, queryref)
+            while True:
+                try:
+                    output_txt += (next(out) + '\n')
+                except StopIteration:
+                    break
         with open(samfn, 'r') as f:
             paf_txt = ''
             for line in f:
@@ -204,17 +191,12 @@ class TestGenerateBED(unittest.TestCase):
     def generate_and_check(self, chainfn, bedfn, coord):
         output_txt = ''
         with open(chainfn, 'r') as f:
-            for line in f:
-                fields = line.split()
-                if len(fields) == 0:
-                    continue
-                elif line.startswith('chain'):
-                    c = utils.Chain(fields)
-                else:
-                    bed_str = c.record_to_bed(fields=fields, coord=coord)
-                    if bed_str != '':
-                        output_txt += (bed_str + '\n')
-                    c.add_record(fields)
+            out = to_bed.write_to_bed(f, coord)
+            while True:
+                try:
+                    output_txt += (next(out) + '\n')
+                except StopIteration:
+                    break
         with open(bedfn, 'r') as f:
             bed_txt = ''
             for line in f:
@@ -230,6 +212,30 @@ class TestGenerateBED(unittest.TestCase):
     def test_generate_bed_from_small_query(self):
         fn = 'testdata/target-query.chain'
         bedfn = 'testdata/target-query.query.bed'
+        self.assertTrue(self.generate_and_check(fn, bedfn, 'query'),
+                        f'Failed when generating BED (query) from {fn}')
+
+    def test_generate_bed_from_forward_target(self):
+        fn = 'testdata/forward.chain'
+        bedfn = 'testdata/forward.target.bed'
+        self.assertTrue(self.generate_and_check(fn, bedfn, 'target'),
+                        f'Failed when generating BED (target) from {fn}')
+    
+    def test_generate_bed_from_forward_query(self):
+        fn = 'testdata/forward.chain'
+        bedfn = 'testdata/forward.query.bed'
+        self.assertTrue(self.generate_and_check(fn, bedfn, 'query'),
+                        f'Failed when generating BED (query) from {fn}')
+
+    def test_generate_bed_from_reversed_target(self):
+        fn = 'testdata/reversed.chain'
+        bedfn = 'testdata/reversed.target.bed'
+        self.assertTrue(self.generate_and_check(fn, bedfn, 'target'),
+                        f'Failed when generating BED (target) from {fn}')
+    
+    def test_generate_bed_from_reversed_query(self):
+        fn = 'testdata/reversed.chain'
+        bedfn = 'testdata/reversed.query.bed'
         self.assertTrue(self.generate_and_check(fn, bedfn, 'query'),
                         f'Failed when generating BED (query) from {fn}')
 

@@ -82,7 +82,17 @@ def compute_hamming_dist(
     idy /= len(s1)
     return idy
 
-def get_target_entries(fn: str)->dict:
+
+''' Read a chain file and get target entries
+
+Inputs: 
+    - fn: chain filename
+Outputs:
+    - (dict): 
+        key: target contig
+        value: target contig length
+'''
+def get_target_entries(fn: str) -> dict:
     CC = ChainConst()
     dict_contig_length = {}
     with open(fn, 'r') as f:
@@ -140,6 +150,11 @@ class Chain(ChainConst):
         self.dt = 0
         self.dq = 0
         self.seglen = 0
+        # Variables for converting uses
+        self.cigarstring = ''
+        self.nmtagval = 0
+        self.total_num_match = 0
+        self.total_block_t = 0
 
     def add_record(self, fields) -> None:
         segment_size = int(fields[self.C_SIZE])
@@ -309,225 +324,144 @@ class Chain(ChainConst):
 
         return True
 
+    ''' Update CIGAR string for a gap
+    
+    Inputs:
+        - deltaq: the dq field in a chain line
+        - deltat: the dt field in a chain line
+        - queryendpos (optional): pos_end of the processed segments
+    Outputs:
+        - queryendpos: updated queryendpos
+    '''
+    def update_cigar_indel(
+        self, deltaq: int, deltat: int, 
+        queryendpos: int=0
+    ) -> int:
+        if deltaq > 0:
+            self.cigarstring += f'{deltaq}I'
+            self.nmtagval += deltaq
+        else:
+            self.cigarstring += f'{deltat}D'
+            self.nmtagval += deltat
+        if self.strand == '+':
+            queryendpos += deltaq
+        else:
+            queryendpos -= deltaq
+        return queryendpos
+
+    ''' Update CIGAR string for a matched chain segment
+    
+    An interval represents zero-based, half-open start/end of a matched segment
+
+    Inputs:
+        - intvl: the chain segment in an interval format
+        - queryref: query FASTA object
+        - qname: query contig name
+        - targetref: target FASTA object
+        - tname: target contig name
+    Outputs:
+        - queryendpos: updated queryendpos
+    '''
+    def update_cigar_match(
+        self, intvl: intervaltree.Interval,
+        queryref: pysam.FastaFile, qname: str,
+        targetref: pysam.FastaFile, tname: str,
+        queryendpos: int=0,
+    ) -> int:
+        segmentlength = intvl.end - intvl.begin
+        # If reference sequences are provided
+        if queryref and targetref:
+            if self.strand == "+":
+                alignseq_qstart = intvl.begin + intvl.data[0]
+                alignseq_qend = intvl.end + intvl.data[0]
+                alignseq_q = queryref.fetch(
+                    reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
+                queryendpos += segmentlength
+            else:
+                alignseq_qend = intvl.begin + intvl.data[0]
+                alignseq_qstart = alignseq_qend - (intvl.end - intvl.begin)
+                alignseq_q = queryref.fetch(
+                    reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
+                alignseq_q = reverse_complement(alignseq_q)
+                queryendpos -= segmentlength
+
+            alignseq_tstart = intvl.begin
+            alignseq_tend = intvl.end
+            alignseq_t = targetref.fetch(
+                reference=tname, start=alignseq_tstart, end=alignseq_tend).upper()
+
+            nummatches = 0
+            nummismatches = 0
+            for i in range(segmentlength):
+                if alignseq_q[i] == alignseq_t[i]:
+                    if nummismatches > 0:
+                        self.cigarstring += f'{nummismatches}X'
+                        self.nmtagval += nummismatches
+                        nummismatches = 0
+                    nummatches += 1
+                else:
+                    if nummatches > 0:
+                        self.cigarstring += f'{nummatches}='
+                        nummatches = 0
+                    nummismatches += 1
+            if nummatches > 0:
+                self.cigarstring += f'{nummatches}='
+                self.total_num_match += nummatches
+                self.total_block_t += nummatches
+            elif nummismatches > 0:
+                self.cigarstring += f'{nummismatches}X'
+                self.nmtagval += nummismatches
+                self.total_block_t += nummismatches
+        else:
+            # If no reference sequences are provided
+            segmentlength = intvl.end - intvl.begin
+            self.cigarstring += f'{segmentlength}M'
+            self.total_num_match += segmentlength
+            self.total_block_t += segmentlength
+            if self.strand == "+":
+                queryendpos += segmentlength
+            else:
+                queryendpos -= segmentlength
+        return queryendpos
+
     def to_paf(
         self, targetref: pysam.FastaFile, queryref: pysam.FastaFile
     ) -> str:
-        msg = ''
-        cigarstring = ''
-        nmtagval = 0
-
-        # these are all correct for positive or negative strand (positions 1-based):
-        qname = self.query
-        rname = self.target
-        pos = self.tstart + 1
-        qlen = self.qlen
-        qstart = self.qstart
-        chainid = self.id
-        segmentid = 1
-
-        total_num_match = 0
-        total_block_t = 0
-
-        # hard clipping at start of alignment and 1-based target starts/ends:
-        if self.strand == '+':
-            lefthardclip = qstart
-            querystartpos = qstart + 1
-            queryendpos = querystartpos
-            flag = 0
-        else:
-            lefthardclip = qstart
-            querystartpos = qlen - qstart
-            queryendpos = querystartpos
-            flag = 16
-
-        intervals = sorted(self.ttree.all_intervals)
-        for i, intvl in enumerate(intervals):
+        for i, intvl in enumerate(sorted(self.ttree.all_intervals)):
             # deal with indels first, because they are to the left of the matching segment:
             if i > 0:
                 deltat = intvl.data[1]
-                total_block_t += deltat
+                self.total_block_t += deltat
                 deltaq = intvl.data[2]
 
-                # # split the alignment if there are unaligned bases in both target and query
                 if deltaq > 0 and deltat > 0:
-                    # # write alignment line, increment segment number, reset start positions of alignment and left hard clipping
-                    # if self.strand == '+':
-                    #     # righthardclip = qlen - queryendpos + 1
-                    #     seq = queryref.fetch(reference=qname, start=querystartpos-1, end=queryendpos-1).upper()
-                    # else:
-                    #     # righthardclip = queryendpos
-                    #     seq = queryref.fetch(reference=qname, start=queryendpos, end=querystartpos).upper()
-                    #     seq = reverse_complement(seq)
-                    # # fullcigar = f'{lefthardclip}H' + cigarstring + f'{righthardclip}H'
-                    # fullcigar = cigarstring
-                    # msg += (f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}\t0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{nmtagval}\n')
-                    # pos = intvl.begin + 1
-                    # cigarstring = ''
-                    # nmtagval = 0
-                    # if self.strand == '+':
-                    #     # lefthardclip = intvl.begin + intvl.data[0]
-                    #     querystartpos = lefthardclip + 1
-                    # else:
-                    #     # lefthardclip = qlen - intvl.begin - intvl.data[0]
-                    #     querystartpos = intvl.begin + intvl.data[0]
-                    # queryendpos = querystartpos
-                    # segmentid += 1
                     min_delta = min([deltat, deltaq])
-                    cigarstring += f'{min_delta}X'
+                    self.cigarstring += f'{min_delta}X'
                     if deltaq > min_delta:
-                        cigarstring += f'{deltaq - min_delta}I'
+                        self.cigarstring += f'{deltaq - min_delta}I'
                     elif deltat > min_delta:
-                        cigarstring += f'{deltat - min_delta}D'
-                    nmtagval += deltaq
+                        self.cigarstring += f'{deltat - min_delta}D'
+                    self.nmtagval += deltaq
                 else:
-                    if deltaq > 0:
-                        cigarstring += f'{deltaq}I'
-                        nmtagval += deltaq
-                    elif deltat > 0:
-                        cigarstring += f'{deltat}D'
-                        nmtagval += deltat
-                if self.strand == '+':
-                    queryendpos += deltaq
-                else:
-                    queryendpos -= deltaq
+                    self.update_cigar_indel(
+                        deltaq=deltaq, deltat=deltat)
 
-            # now add X/= counts to cigar within matched segment:
-            # zero-based, half-open start/end of matched segment
-            segmentlength = intvl.end - intvl.begin
-            if queryref and targetref:
-                if self.strand == "+":
-                    alignseq_qstart = intvl.begin + intvl.data[0]
-                    alignseq_qend = intvl.end + intvl.data[0]
-                    alignseq_q = queryref.fetch(reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
-                    queryendpos += segmentlength
-                else:
-                    alignseq_qend = intvl.begin + intvl.data[0]
-                    alignseq_qstart = alignseq_qend - (intvl.end - intvl.begin)
-                    alignseq_q = queryref.fetch(reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
-                    alignseq_q = reverse_complement(alignseq_q)
-                    queryendpos -= segmentlength
+            # update matched segment
+            self.update_cigar_match(
+                intvl=intvl,
+                queryref=queryref, qname=self.query,
+                targetref=targetref, tname=self.target)
 
-                alignseq_tstart = intvl.begin
-                alignseq_tend = intvl.end
-                alignseq_t = targetref.fetch(reference=rname, start=alignseq_tstart, end=alignseq_tend).upper()
-
-                nummatches = 0
-                nummismatches = 0
-                for i in range(segmentlength):
-                    if alignseq_q[i] == alignseq_t[i]:
-                        if nummismatches > 0:
-                            cigarstring += f'{nummismatches}X'
-                            nmtagval += nummismatches
-                            nummismatches = 0
-                        nummatches += 1
-                    else:
-                        if nummatches > 0:
-                            cigarstring += f'{nummatches}='
-                            nummatches = 0
-                        nummismatches += 1
-                if nummatches > 0:
-                    cigarstring += f'{nummatches}='
-                    total_num_match += nummatches
-                    total_block_t += nummatches
-                elif nummismatches > 0:
-                    cigarstring += f'{nummismatches}X'
-                    nmtagval += nummismatches
-                    total_block_t += nummismatches
-            else:
-                # If no reference sequences are provided
-                cigarstring += f'{segmentlength}M'
-                total_num_match += segmentlength
-                total_block_t += segmentlength
-            
-        # # write last alignment line
-        # if self.strand == '+':
-        #     # righthardclip = qlen - queryendpos + 1
-        #     seq = queryref.fetch(reference=qname, start=querystartpos-1, end=queryendpos-1).upper()
-        # else:
-        #     # righthardclip = queryendpos
-        #     seq = queryref.fetch(reference=qname, start=queryendpos, end=querystartpos).upper()
-        #     seq = reverse_complement(seq)
-        # fullcigar = f'{lefthardclip}H' + cigarstring + f'{righthardclip}H'
-        fullcigar = cigarstring
-        # msg += (f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}\t0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{nmtagval}\n')
         if self.qstrand == '+':
             msg = (f'{self.query}\t{self.qlen}\t{self.qstart}\t{self.qend}\t{self.qstrand}\t'
-                   f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{total_num_match}\t'
-                   f'{total_block_t}\t255\tcg:Z:{fullcigar}\tNM:i:{nmtagval}')
+                   f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.total_num_match}\t'
+                   f'{self.total_block_t}\t255\tcg:Z:{self.cigarstring}\tNM:i:{self.nmtagval}')
         else:
             msg = (f'{self.query}\t{self.qlen}\t{self.qlen - self.qend}\t{self.qlen - self.qstart}\t{self.qstrand}\t'
-                   f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{total_num_match}\t'
-                   f'{total_block_t}\t255\tcg:Z:{fullcigar}\tNM:i:{nmtagval}')
+                   f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.total_num_match}\t'
+                   f'{self.total_block_t}\t255\tcg:Z:{self.cigarstring}\tNM:i:{self.nmtagval}')
         return msg
 
-    def to_paf2(
-        self, targetref: pysam.FastaFile, queryref: pysam.FastaFile
-    ) -> None:
-        def update_cigar(
-            msg: str, num_m: int, dt: int, dq: int
-        ) -> str:
-            if dt != 0 and dq != 0:
-                shared = min(dt, dq)
-                num_m += shared
-                dt -= shared
-                dq -= shared
-            if num_m > 0:
-                msg += f'{num_m}M'
-            if max(dt, dq) > 0:
-                if dt > dq:
-                    msg += f'{dt - dq}D'
-                elif dt < dq:
-                    msg += f'{dq - dt}I'
-            return msg
-
-        # aln_block_len = 0
-        num_match = 0
-        total_block_t = 0
-        # total_block_q = 0
-        msg = ''
-        intervals = sorted(self.ttree.all_intervals)
-        for i, intvl in enumerate(intervals):
-            if i == 0:
-                num_m = intvl.begin - self.tstart - intvl.data[1]
-            else:
-                pintvl = intervals[i-1]
-                num_m = pintvl.end - pintvl.begin
-            dt = intvl.data[1]
-            dq = intvl.data[2]
-            # if dt != 0 and dq != 0:
-            #     print(msg)
-            #     print(num_m, dt, dq)
-            #     print(i, intvl)
-            #     exit(1)
-            num_match += num_m
-            # aln_block_len += (num_m + max([dt, dq]))
-            total_block_t += (num_m + dt)
-            # total_block_q += (num_m + dq)
-            msg = update_cigar(msg, num_m, dt, dq)
-
-        if intvl.end == self.tend:
-            msg += f'{intvl.end - intvl.begin}M'
-        else:
-            num_m = intvl.end - intvl.begin
-            dt = self.tend - intvl.end
-            dq = self.qend - (intvl.end+intvl.data[0])
-            num_match += num_m
-            # aln_block_len += (num_m + max([dt, dq]))
-            total_block_t += (num_m + dt)
-            # total_block_q += (num_m + dq)
-            msg = update_cigar(msg, num_m, dt, dq)
-
-        if self.qstrand == '+':
-            hdr = (f'{self.query}\t{self.qlen}\t{self.qstart}\t{self.qend}\t{self.qstrand}\t'
-                   f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{num_match}\t'
-                   f'{total_block_t}\t255\tcg:Z:')
-        else:
-            hdr = (f'{self.query}\t{self.qlen}\t{self.qlen - self.qend}\t{self.qlen - self.qstart}\t{self.qstrand}\t'
-                   f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{num_match}\t'
-                   f'{total_block_t}\t255\tcg:Z:')
-
-        return hdr+msg
-    
     def to_vcf(self, targetref, queryref) -> None:
         msg = ''
         rname = self.target
@@ -589,13 +523,10 @@ class Chain(ChainConst):
                     else:
                         qpos = alignseq_qend - i
                     msg += (f'{rname}\t{rpos}\t.\t{alignseq_t[i]}\t{alignseq_q[i]}\t.\tAUTO\tALN_SCORE={self.score};ALN_QUERY={qname};ALN_QPOS={qpos};ALN_STRAND={self.strand}\n')
-
-        return msg
+        return msg.rstrip()
     
     def to_sam(self, targetref, queryref) -> None:
         msg = ''
-        cigarstring = ''
-        nmtagval = 0
 
         # these are all correct for positive or negative strand (positions 1-based):
         qname = self.query
@@ -627,19 +558,23 @@ class Chain(ChainConst):
 
                 # split the alignment if there are unaligned bases in both target and query
                 if deltaq > 0 and deltat > 0:
-                    # write alignment line, increment segment number, reset start positions of alignment and left hard clipping
+                    # write alignment line, increment segment number, reset start positions 
+                    # of alignment and left hard clipping
                     if self.strand == '+':
                         righthardclip = qlen - queryendpos + 1
-                        seq = queryref.fetch(reference=qname, start=querystartpos-1, end=queryendpos-1).upper()
+                        seq = queryref.fetch(
+                            reference=qname, start=querystartpos-1, end=queryendpos-1).upper()
                     else:
                         righthardclip = queryendpos
-                        seq = queryref.fetch(reference=qname, start=queryendpos, end=querystartpos).upper()
+                        seq = queryref.fetch(
+                            reference=qname, start=queryendpos, end=querystartpos).upper()
                         seq = reverse_complement(seq)
-                    fullcigar = f'{lefthardclip}H' + cigarstring + f'{righthardclip}H'
-                    msg += (f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}\t0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{nmtagval}\n')
+                    fullcigar = f'{lefthardclip}H' + self.cigarstring + f'{righthardclip}H'
+                    msg += (f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}\t'
+                            f'0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{self.nmtagval}\n')
                     pos = intvl.begin + 1
-                    cigarstring = ''
-                    nmtagval = 0
+                    self.cigarstring = ''
+                    self.nmtagval = 0
                     if self.strand == '+':
                         lefthardclip = intvl.begin + intvl.data[0]
                         querystartpos = lefthardclip + 1
@@ -649,58 +584,14 @@ class Chain(ChainConst):
                     queryendpos = querystartpos
                     segmentid += 1
                 else:
-                    if deltaq > 0:
-                        cigarstring += f'{deltaq}I'
-                        nmtagval += deltaq
-                    else:
-                        cigarstring += f'{deltat}D'
-                        nmtagval += deltat
-                    if self.strand == '+':
-                        queryendpos += deltaq
-                    else:
-                        queryendpos -= deltaq
+                    queryendpos = self.update_cigar_indel(
+                        deltaq=deltaq, deltat=deltat, queryendpos=queryendpos)
 
-            # now add X/= counts to cigar within matched segment:
-            # zero-based, half-open start/end of matched segment
-
-            segmentlength = intvl.end - intvl.begin
-            if self.strand == "+":
-                alignseq_qstart = intvl.begin + intvl.data[0]
-                alignseq_qend = intvl.end + intvl.data[0]
-                alignseq_q = queryref.fetch(reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
-                queryendpos += segmentlength
-            else:
-                alignseq_qend = intvl.begin + intvl.data[0]
-                alignseq_qstart = alignseq_qend - (intvl.end - intvl.begin)
-                alignseq_q = queryref.fetch(reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
-                alignseq_q = reverse_complement(alignseq_q)
-                queryendpos -= segmentlength
-
-            alignseq_tstart = intvl.begin
-            alignseq_tend = intvl.end
-            alignseq_t = targetref.fetch(reference=rname, start=alignseq_tstart, end=alignseq_tend).upper()
-
-            #print(f'Tstart {alignseq_tstart} Tend {alignseq_tend} Sstart {alignseq_sstart} Send {alignseq_send} Intvl {intvl.begin}:{intvl.end} Toffset {intvl.data[1]} Seglength {segmentlength}')
-
-            nummatches = 0
-            nummismatches = 0
-            for i in range(segmentlength):
-                if alignseq_q[i] == alignseq_t[i]:
-                    if nummismatches > 0:
-                        cigarstring += f'{nummismatches}X'
-                        nmtagval += nummismatches
-                        nummismatches = 0
-                    nummatches += 1
-                else:
-                    if nummatches > 0:
-                        cigarstring += f'{nummatches}='
-                        nummatches = 0
-                    nummismatches += 1
-            if nummatches > 0:
-                cigarstring += f'{nummatches}='
-            elif nummismatches > 0:
-                cigarstring += f'{nummismatches}X'
-                nmtagval += nummismatches
+            # update matched segment
+            queryendpos = self.update_cigar_match(
+                intvl=intvl, queryendpos=queryendpos,
+                queryref=queryref, qname=qname,
+                targetref=targetref, tname=rname)
 
         # write last alignment line
         if self.strand == '+':
@@ -710,8 +601,9 @@ class Chain(ChainConst):
             righthardclip = queryendpos
             seq = queryref.fetch(reference=qname, start=queryendpos, end=querystartpos).upper()
             seq = reverse_complement(seq)
-        fullcigar = f'{lefthardclip}H' + cigarstring + f'{righthardclip}H'
-        msg += (f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}\t0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{nmtagval}\n')
+        fullcigar = f'{lefthardclip}H' + self.cigarstring + f'{righthardclip}H'
+        msg += (f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}'
+                f'\t0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{self.nmtagval}')
 
         return msg
 
@@ -736,7 +628,8 @@ def vcf_header(dict_contig_length) -> str:
     header += (f'##INFO=<ID=ALN_DQ,Number=A,Type=Integer,Description="Length of gap on query sequence.">\n')
     header += (f'#CHROM       POS     ID      REF     ALT     QUAL    FILTER  INFO\n')
 
-    return header
+    return header.rstrip()
+
 
 def sam_header(dict_contig_length) -> str:
     header = ''
@@ -745,4 +638,4 @@ def sam_header(dict_contig_length) -> str:
     for contig in sorted(dict_contig_length, key=lambda i: int(dict_contig_length[i]), reverse=True):
         header += (f'@SQ\tSN:{contig}\tLN:{dict_contig_length[contig]}\n')
 
-    return header
+    return header.rstrip()

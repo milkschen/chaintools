@@ -10,8 +10,10 @@ Johns Hopkins University
 2021-2022
 '''
 import argparse
+import pysam
 import utils
 import sys
+from typing import TextIO
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -34,7 +36,27 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def write_to_vcf(fn_chain: str, fn_vcf: str, fn_targetfasta: str, fn_queryfasta: str):
+
+def write_to_vcf(
+    f: TextIO, targetref: pysam.FastaFile=None, queryref: pysam.FastaFile=None
+) -> str:
+    for line in f:
+        fields = line.split()
+        if len(fields) == 0:
+            pass
+        elif fields[0] == 'chain':
+            c = utils.Chain(fields)
+        else:
+            c.add_record(fields)
+            if len(fields) == 1:
+                yield c.to_vcf(targetref=targetref, queryref=queryref)
+                c = None
+
+
+def write_to_vcf_io(
+    fn_chain: str, fn_vcf: str,
+    fn_targetfasta: str='', fn_queryfasta: str=''
+) -> None:
     if fn_chain == '-':
         f = sys.stdin
     else:
@@ -44,24 +66,22 @@ def write_to_vcf(fn_chain: str, fn_vcf: str, fn_targetfasta: str, fn_queryfasta:
     else:
         fo = sys.stdout
 
-    print(utils.vcf_header(utils.get_target_entries(fn_chain)), file=fo, end='')
-
     targetref = utils.fasta_reader(fn_targetfasta)
     queryref = utils.fasta_reader(fn_queryfasta)
 
-    for line in f:
-        fields = line.split()
-        if len(fields) == 0:
-            continue
-        elif line.startswith('chain'):
-            c = utils.Chain(fields)
-        elif len(fields) == 3:
-            c.add_record_three(fields)
-        elif len(fields) == 1:
-            c.add_record_one(fields)
-            print(c.to_vcf(targetref, queryref), file=fo, end='')
-            c = None
+    print(utils.vcf_header(utils.get_target_entries(fn_chain)), file=fo)
+
+    out = write_to_vcf(f=f, targetref=targetref, queryref=queryref)
+    while True:
+        try:
+            print(next(out), file=fo)
+        except StopIteration:
+            break
+
 
 if __name__ == '__main__':
     args = parse_args()
-    write_to_vcf(fn_chain=args.chain, fn_vcf=args.output, fn_targetfasta=args.targetfasta, fn_queryfasta=args.queryfasta)
+    write_to_vcf_io(
+        fn_chain=args.chain, fn_vcf=args.output,
+        fn_targetfasta=args.targetfasta,
+        fn_queryfasta=args.queryfasta)

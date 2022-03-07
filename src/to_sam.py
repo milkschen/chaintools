@@ -10,8 +10,10 @@ Johns Hopkins University
 2021-2022
 '''
 import argparse
+import pysam
 import utils
 import sys
+from typing import TextIO
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -34,34 +36,51 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def write_to_sam(fn_chain: str, fn_sam: str, fn_targetfasta: str, fn_queryfasta: str):
-    if fn_chain == '-':
-        f = sys.stdin
-    else:
-        f = open(fn_chain, 'r')
-    if fn_sam:
-        fo = open(fn_sam, 'w')
-    else:
-        fo = sys.stdout
 
-    print(utils.sam_header(utils.get_target_entries(fn_chain)), file=fo, end='')
-
-    targetref = utils.fasta_reader(fn_targetfasta)
-    queryref = utils.fasta_reader(fn_queryfasta)
-
+def write_to_sam(
+    f: TextIO, targetref: pysam.FastaFile=None, queryref: pysam.FastaFile=None
+) -> str:
     for line in f:
         fields = line.split()
         if len(fields) == 0:
-            continue
-        elif line.startswith('chain'):
+            pass
+        elif fields[0] == 'chain':
             c = utils.Chain(fields)
         else:
             c.add_record(fields)
             if len(fields) == 1:
-                print(c.to_sam(targetref, queryref), file=fo, end='')
+                yield c.to_sam(targetref=targetref, queryref=queryref)
                 c = None
+
+
+def write_to_sam_io(
+    fn_chain: str, fn_paf: str,
+    fn_targetfasta: str='', fn_queryfasta: str=''
+) -> None:
+    if fn_chain == '-':
+        f = sys.stdin
+    else:
+        f = open(fn_chain, 'r')
+    if fn_paf:
+        fo = open(fn_paf, 'w')
+    else:
+        fo = sys.stdout
+
+    print(utils.sam_header(utils.get_target_entries(fn_chain)), file=fo)
+
+    targetref = utils.fasta_reader(fn_targetfasta)
+    queryref = utils.fasta_reader(fn_queryfasta)
+
+    out = write_to_sam(f=f, targetref=targetref, queryref=queryref)
+    while True:
+        try:
+            print(next(out), file=fo)
+        except StopIteration:
+            break
 
 
 if __name__ == '__main__':
     args = parse_args()
-    write_to_sam(fn_chain=args.chain, fn_sam=args.output, fn_targetfasta=args.targetfasta, fn_queryfasta=args.queryfasta)
+    write_to_sam_io(
+        fn_chain=args.chain, fn_paf=args.output,
+        fn_targetfasta=args.targetfasta, fn_queryfasta=args.queryfasta)

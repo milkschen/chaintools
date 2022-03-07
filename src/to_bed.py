@@ -6,8 +6,10 @@ Johns Hopkins University
 2022
 '''
 import argparse
+import pysam
 import utils
 import sys
+from typing import TextIO
 
 
 def parse_args():
@@ -28,7 +30,23 @@ def parse_args():
     return args
 
 
-def write_to_bed(fn_chain: str, fn_bed: str, coord: str):
+def write_to_bed(
+    f: TextIO, coord: str
+) -> str:
+    for line in f:
+        fields = line.split()
+        if len(fields) == 0:
+            pass
+        elif fields[0] == 'chain':
+            c = utils.Chain(fields)
+        else:
+            bed_str = c.record_to_bed(fields=fields, coord=coord)
+            if bed_str != '':
+                yield bed_str
+            c.add_record(fields)
+
+
+def write_to_bed_io(fn_chain: str, fn_bed: str, coord: str) -> None:
     if fn_chain == '-':
         f = sys.stdin
     else:
@@ -38,17 +56,12 @@ def write_to_bed(fn_chain: str, fn_bed: str, coord: str):
     else:
         fo = sys.stdout
 
-    for line in f:
-        fields = line.split()
-        if len(fields) == 0:
-            continue
-        elif line.startswith('chain'):
-            c = utils.Chain(fields)
-        else:
-            bed_str = c.record_to_bed(fields=fields, coord=coord)
-            if bed_str != '':
-                print(bed_str, file=fo)
-            c.add_record(fields)
+    out = write_to_bed(f=f, coord=coord)
+    while True:
+        try:
+            print(next(out), file=fo)
+        except StopIteration:
+            break
 
 
 if __name__ == '__main__':
@@ -56,4 +69,4 @@ if __name__ == '__main__':
     if args.coord not in ['target', 'query']:
         raise(ValueError, 'Illegal `-coord` value. Should be in ["target", "query"]')
 
-    write_to_bed(fn_chain=args.chain, fn_bed=args.output, coord=args.coord)
+    write_to_bed_io(fn_chain=args.chain, fn_bed=args.output, coord=args.coord)
