@@ -79,7 +79,10 @@ def split_chain(
                 tmp_tend = c.tend
                 tmp_qend = c.qend
                 c.tend = c.toffset
-                c.qend = c.qoffset
+                if c.strand == '+':
+                    c.qend = c.qoffset
+                else:
+                    c.qend = c.qlen - c.qoffset
                 print(c.print_chain(), file=fo)
                 num_split_chain += 1
                 # Reset

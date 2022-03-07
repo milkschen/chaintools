@@ -244,9 +244,12 @@ class Chain(ChainConst):
             self.qoffset = self.qstart
             self.qend = qend
         else:
-            self.qoffset = self.qend - dq
+            self.qoffset -= dq
+            # self.qoffset = self.qstart + dq
+            # self.qoffset = self.qend - dq
             self.qstart = self.qlen - self.qoffset
-            self.qend = self.qlen - qend
+            self.qend = qend
+            # self.qend = self.qlen - qend
         # Update ID
         if len(self.id.split('.')) > 1:
             l = self.id.split('.')
