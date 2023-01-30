@@ -14,25 +14,23 @@ from typing import TextIO
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-c',
+                        '--chain',
+                        default='-',
+                        help='Path to the chain file')
+    parser.add_argument('-o',
+                        '--output',
+                        default='',
+                        help='Path to the output BED file.')
     parser.add_argument(
-        '-c', '--chain', default='-',
-        help='Path to the chain file'
-    )
-    parser.add_argument(
-        '-o', '--output', default='',
-        help='Path to the output BED file.'
-    )
-    parser.add_argument(
-        '--coord', default='target',
-        help='Output coordinate system. Options: target, query. ["target"]'
-    )
+        '--coord',
+        default='target',
+        help='Output coordinate system. Options: target, query. ["target"]')
     args = parser.parse_args()
     return args
 
 
-def write_to_bed(
-    f: TextIO, coord: str
-) -> str:
+def write_to_bed(f: TextIO, coord: str) -> str:
     for line in f:
         fields = line.split()
         if len(fields) == 0:
@@ -67,6 +65,7 @@ def write_to_bed_io(fn_chain: str, fn_bed: str, coord: str) -> None:
 if __name__ == '__main__':
     args = parse_args()
     if args.coord not in ['target', 'query']:
-        raise(ValueError, 'Illegal `-coord` value. Should be in ["target", "query"]')
+        raise (ValueError,
+               'Illegal `-coord` value. Should be in ["target", "query"]')
 
     write_to_bed_io(fn_chain=args.chain, fn_bed=args.output, coord=args.coord)
