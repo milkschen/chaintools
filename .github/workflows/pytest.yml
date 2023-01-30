@@ -33,6 +33,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      
+      - name: Install dependencies
+        run: |
+            pip install intervaltree
+            pip install pysam
 
       - name: Run utils-test
         run: |
