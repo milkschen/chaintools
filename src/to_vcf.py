@@ -80,7 +80,9 @@ def write_to_vcf_io(fn_chain: str,
     out = write_to_vcf(f=f, targetref=targetref, queryref=queryref)
     while True:
         try:
-            print(next(out), file=fo)
+            nextline = next(out)
+            if nextline:
+                print(nextline, file=fo)
         except StopIteration:
             break
 
