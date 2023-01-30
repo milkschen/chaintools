@@ -1,0 +1,39 @@
+name: Python Test
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/**'
+      - 'src/**'
+      - 'src/utils-test.py'
+      - 'testdata/**'
+  pull_request:
+    branches:
+      - 'main'
+    paths:      
+      - '.github/**'
+      - 'src/**'
+      - 'src/utils-test.py'
+      - 'testdata/**'
+
+jobs:
+  create-env:
+    name: ${{ matrix.os }} 
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
+        
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Run utils-test
+        run: |
+            python src/utils-test.py
