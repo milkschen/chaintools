@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 '''
 Annotate a chain file
 
@@ -11,51 +12,62 @@ import pysam
 import re
 import sys
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-c',
+                        '--chain',
+                        required=True,
+                        help='Path to the input chain file.')
     parser.add_argument(
-        '-c', '--chain', required=True,
-        help='Path to the input chain file.'
+        '-o',
+        '--out',
+        default='',
+        help='Path to the output verbose chain file. [empty string]')
+    parser.add_argument(
+        '-b',
+        '--bed_prefix',
+        default='',
+        help=
+        'Prefix to the BED files that specify the aligned regions in `-c`. [empty string]'
     )
     parser.add_argument(
-        '-o', '--out', default='',
-        help='Path to the output verbose chain file. [empty string]'
+        '-s',
+        '--summary',
+        default='',
+        help=
+        'Path to the output summary. Leave empty for no output. [empty string]'
     )
-    parser.add_argument(
-        '-b', '--bed_prefix', default='',
-        help='Prefix to the BED files that specify the aligned regions in `-c`. [empty string]'
-    )
-    parser.add_argument(
-        '-s', '--summary', default='',
-        help='Path to the output summary. Leave empty for no output. [empty string]'
-    )
-    parser.add_argument(
-        '-fs', '--s_ref', default='',
-        help='Path to the source reference (optional).'
-    )
-    parser.add_argument(
-        '-ft', '--t_ref', default='',
-        help='Path to the destination reference (optional).'
-    )
+    parser.add_argument('-fs',
+                        '--s_ref',
+                        default='',
+                        help='Path to the source reference (optional).')
+    parser.add_argument('-ft',
+                        '--t_ref',
+                        default='',
+                        help='Path to the destination reference (optional).')
     args = parser.parse_args()
     return args
 
 
 ''' Write a chain record in the BED format '''
-def write_to_summary(fs_fn, fs, strand, l, hd, source, s_start, target, t_start):
+
+
+def write_to_summary(fs_fn, fs, strand, l, hd, source, s_start, target,
+                     t_start):
     if fs_fn:
         if strand == '+':
             print((f'{l}\t{hd:.6f}\t{source}\t{s_start}\t{s_start+l}\t+'
-                   f'\t{target}\t{t_start}\t{t_start+l}'), file=fs)
+                   f'\t{target}\t{t_start}\t{t_start+l}'),
+                  file=fs)
         else:
             print((f'{l}\t{hd:.6f}\t{source}\t{s_start}\t{s_start+l}\t+'
-                   f'\t{target}\t{t_start-l}\t{t_start}'), file=fs)
+                   f'\t{target}\t{t_start-l}\t{t_start}'),
+                  file=fs)
 
 
-def annotate(
-    chain: str, out: str, bed_prefix: str, summary: str,
-    s_ref: dict, t_ref: dict
-) -> None:
+def annotate(chain: str, out: str, bed_prefix: str, summary: str, s_ref: dict,
+             t_ref: dict) -> None:
     f = open(chain, 'r')
     if out == '':
         fo = sys.stderr
@@ -72,7 +84,9 @@ def annotate(
         assert check_hdist == True
         fs = open(summary, 'w')
         # Write header
-        print(f'SIZE\tHDIST\tSOURCE\tS_START\tS_END\tSTRAND\tTARGET\tT_START\tT_END', file=fs)
+        print(
+            f'SIZE\tHDIST\tSOURCE\tS_START\tS_END\tSTRAND\tTARGET\tT_START\tT_END',
+            file=fs)
     else:
         fs = None
 
@@ -108,10 +122,10 @@ def annotate(
                     f_sbed.write(f'{source}\t{s_start}\t{s_start+l}\n')
                     f_dbed.write(f'{target}\t{t_start}\t{t_start+l}\n')
                 if check_hdist:
-                    hd = utils.compute_hamming_dist(
-                        True,
-                        s_ref, source, s_start, s_start+l,
-                        t_ref, target, t_start, t_start+l)
+                    hd = utils.compute_hamming_dist(True, s_ref, source,
+                                                    s_start, s_start + l,
+                                                    t_ref, target, t_start,
+                                                    t_start + l)
                     msg += f'\t{hd:.2f}'
             else:
                 msg = f'\t{source}:{s_start}-{s_start+l}=>{target}:{t_start}-{t_start-l} ({t_start-s_start})'
@@ -119,13 +133,14 @@ def annotate(
                     f_sbed.write(f'{source}\t{s_start}\t{s_start+l}\n')
                     f_dbed.write(f'{target}\t{t_start-l}\t{t_start}\n')
                 if check_hdist:
-                    hd = utils.compute_hamming_dist(
-                        False,
-                        s_ref, source, s_start, s_start+l,
-                        t_ref, target, t_start-l, t_start)
+                    hd = utils.compute_hamming_dist(False, s_ref, source,
+                                                    s_start, s_start + l,
+                                                    t_ref, target, t_start - l,
+                                                    t_start)
                     msg += f'\t{hd:.2f}'
             print(line + msg, file=fo)
-            write_to_summary(summary, fs, strand, l, hd, source, s_start, target, t_start)
+            write_to_summary(summary, fs, strand, l, hd, source, s_start,
+                             target, t_start)
             if strand == '+':
                 s_start += (l + ds)
                 t_start += (l + dd)
@@ -143,10 +158,10 @@ def annotate(
                     f_sbed.write(f'{source}\t{s_start}\t{s_start+l}\n')
                     f_dbed.write(f'{target}\t{t_start}\t{t_start+l}\n')
                 if check_hdist:
-                    hd = utils.compute_hamming_dist(
-                        True,
-                        s_ref, source, s_start, s_start+l,
-                        t_ref, target, t_start, t_start+l)
+                    hd = utils.compute_hamming_dist(True, s_ref, source,
+                                                    s_start, s_start + l,
+                                                    t_ref, target, t_start,
+                                                    t_start + l)
                     msg += f'\t{hd:.2f}'
             else:
                 msg = f'\t\t\t{source}:{s_start}-{s_start+l}=>{target}:{t_start}-{t_start-l}'
@@ -154,18 +169,21 @@ def annotate(
                     f_sbed.write(f'{source}\t{s_start}\t{s_start+l}\n')
                     f_dbed.write(f'{target}\t{t_start-l}\t{t_start}\n')
                 if check_hdist:
-                    hd = utils.compute_hamming_dist(
-                        False,
-                        s_ref, source, s_start, s_start+l,
-                        t_ref, target, t_start-l, t_start)
+                    hd = utils.compute_hamming_dist(False, s_ref, source,
+                                                    s_start, s_start + l,
+                                                    t_ref, target, t_start - l,
+                                                    t_start)
                     msg += f'\t{hd:.2f}'
-            write_to_summary(summary, fs, strand, l, hd, source, s_start, target, t_start)
+            write_to_summary(summary, fs, strand, l, hd, source, s_start,
+                             target, t_start)
             if check_hdist:
                 total_bases_idy += (l * hd)
             print(line + msg + '\n', file=fo)
 
-    print(f'Total number of gapless aligned bases = {total_bases}', file=sys.stderr)
-    print(f'Total number of gapless matched bases = {total_bases_idy}', file=sys.stderr)
+    print(f'Total number of gapless aligned bases = {total_bases}',
+          file=sys.stderr)
+    print(f'Total number of gapless matched bases = {total_bases_idy}',
+          file=sys.stderr)
 
 
 if __name__ == '__main__':
@@ -174,16 +192,17 @@ if __name__ == '__main__':
     print('Input chain             :', args.chain, file=sys.stderr)
     print('Output chain (annotated):', args.out, file=sys.stderr)
 
-    assert (args.s_ref != '' and args.t_ref != '') or (args.s_ref == '' and args.t_ref == '')
+    assert (args.s_ref != '' and args.t_ref != '') or (args.s_ref == ''
+                                                       and args.t_ref == '')
     print('Source reference        :', args.s_ref, file=sys.stderr)
     print('Target reference        :', args.t_ref, file=sys.stderr)
 
     s_ref = utils.read_fasta(args.s_ref)
     t_ref = utils.read_fasta(args.t_ref)
 
-    annotate(
-        chain=args.chain, out=args.out,
-        bed_prefix=args.bed_prefix, summary=args.summary,
-        s_ref=s_ref, t_ref=t_ref
-    )
-
+    annotate(chain=args.chain,
+             out=args.out,
+             bed_prefix=args.bed_prefix,
+             summary=args.summary,
+             s_ref=s_ref,
+             t_ref=t_ref)

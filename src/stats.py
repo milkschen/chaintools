@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 '''
 Filtering a chain file
 
@@ -13,19 +14,19 @@ import sys
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '-c', '--chain', required=True,
-        help='Path to the chain file'
-    )
-    parser.add_argument(
-        '-o', '--output', default='',
-        help='Path to the output merged chain file.'
-    )
+    parser.add_argument('-c',
+                        '--chain',
+                        required=True,
+                        help='Path to the chain file')
+    parser.add_argument('-o',
+                        '--output',
+                        default='',
+                        help='Path to the output merged chain file.')
     args = parser.parse_args()
     return args
 
 
-def stats (fn_chain: str, fn_out: str):
+def stats(fn_chain: str, fn_out: str):
     f = open(fn_chain, 'r')
 
     print(f'TARGET\tQUERY\tSCORE\tSTRAND\tSEGLEN', file=sys.stderr)
@@ -44,7 +45,7 @@ def stats (fn_chain: str, fn_out: str):
             c.add_record_three(fields)
         elif len(fields) == 1:
             c.add_record_one(fields)
-            
+
             if c.strand == '+':
                 num_forward += 1
                 seglen_forward += c.seglen
@@ -56,11 +57,8 @@ def stats (fn_chain: str, fn_out: str):
             print(msg, file=sys.stderr)
 
             c = None
-    data = [
-        [num_forward, seglen_forward],
-        [num_reversed, seglen_reversed],
-        [num_forward + num_reversed, seglen_forward + seglen_reversed]
-    ]
+    data = [[num_forward, seglen_forward], [num_reversed, seglen_reversed],
+            [num_forward + num_reversed, seglen_forward + seglen_reversed]]
     idx = ['Forward', 'Reversed', 'Total']
     hdr = ['NumChains', 'SegmentSize']
     df = pd.DataFrame(data, idx, hdr)

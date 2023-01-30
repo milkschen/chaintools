@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 '''
 Convert a chain file to the BED format
 

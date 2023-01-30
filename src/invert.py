@@ -1,5 +1,10 @@
+#!/usr/bin/env python3
 '''
 Switch the source and target reference of a chain file
+
+Nae-Chyun Chen
+Johns Hopkins University
+2022
 '''
 import argparse
 import sys
@@ -8,14 +13,15 @@ import re
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-c',
+                        '--chain',
+                        default='',
+                        help='Path to the input chain file.')
     parser.add_argument(
-        '-c', '--chain', default='',
-        help='Path to the input chain file.'
-    )
-    parser.add_argument(
-        '-o', '--out', default='',
-        help='Path to the output verbose chain file. [empty string]'
-    )
+        '-o',
+        '--out',
+        default='',
+        help='Path to the output verbose chain file. [empty string]')
     args = parser.parse_args()
     return args
 
@@ -74,7 +80,7 @@ def invert(in_fn: str, out_fn: str) -> None:
             if strand == '-':
                 chain_list = chain_list[::-1]
             for i in range(int(len(chain_list) / 3)):
-                p = ' '.join(chain_list[i*3: (i+1)*3])
+                p = ' '.join(chain_list[i * 3:(i + 1) * 3])
                 print(p, file=fo)
             print(chain_list[-1], file=fo)
             print('', file=fo)

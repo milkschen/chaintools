@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 '''
 Split a chain at alignment breakpoints and large gaps
 
@@ -13,21 +14,28 @@ from typing import TextIO
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-c',
+                        '--chain',
+                        required=True,
+                        help='Path to the chain file')
     parser.add_argument(
-        '-c', '--chain', required=True,
-        help='Path to the chain file'
+        '-o',
+        '--output',
+        default='',
+        help='Path to the output BED file. Leave empty to write to stdout.')
+    parser.add_argument(
+        '--min_gap',
+        default=10000,
+        type=int,
+        help=
+        'Min size of chain gaps to split. Set to a negative value to diable. Example of a 2000-bp gap `100 2000 0`. [10000]'
     )
     parser.add_argument(
-        '-o', '--output', default='',
-        help='Path to the output BED file. Leave empty to write to stdout.'
-    )
-    parser.add_argument(
-        '--min_gap', default=10000, type=int,
-        help='Min size of chain gaps to split. Set to a negative value to diable. Example of a 2000-bp gap `100 2000 0`. [10000]'
-    )
-    parser.add_argument(
-        '--min_bp', default=1000, type=int,
-        help='Min size of chain break point to split. Set to a negative value to diable. Example of a 341-bp breakpoint: `149 341 2894`. [1000]'
+        '--min_bp',
+        default=1000,
+        type=int,
+        help=
+        'Min size of chain break point to split. Set to a negative value to diable. Example of a 341-bp breakpoint: `149 341 2894`. [1000]'
     )
     args = parser.parse_args()
     return args
@@ -43,9 +51,9 @@ Inputs:
               not simply indelic, such as `149 341 2894`
     - min_gap: min gap size that we split
 '''
-def check_split(
-    dt: int, dq: int, min_bp: int, min_gap: int
-) -> bool:
+
+
+def check_split(dt: int, dq: int, min_bp: int, min_gap: int) -> bool:
     if min_bp >= 0:
         if min([dt, dq]) > min_bp:
             return True
@@ -55,9 +63,7 @@ def check_split(
     return False
 
 
-def split_chain(
-    f: TextIO,  min_bp: int, min_gap: int
-) -> str:
+def split_chain(f: TextIO, min_bp: int, min_gap: int) -> str:
     for line in f:
         fields = line.split()
         if len(fields) == 0:
@@ -67,9 +73,8 @@ def split_chain(
         elif len(fields) == 3:
             dt = int(fields[1])
             dq = int(fields[2])
-            # Split a chain object if encountering an alignment breakpoint. 
-            if check_split(
-                dt=dt, dq=dq, min_bp=min_bp, min_gap=min_gap):
+            # Split a chain object if encountering an alignment breakpoint.
+            if check_split(dt=dt, dq=dq, min_bp=min_bp, min_gap=min_gap):
                 c.add_record([fields[0]])
                 tmp_tend = c.tend
                 tmp_qend = c.qend
@@ -78,22 +83,19 @@ def split_chain(
                     c.qend = c.qoffset
                 else:
                     c.qend = c.qlen - c.qoffset
-                yield(c.print_chain())
+                yield (c.print_chain())
                 # Reset
-                c.reset_at_break(
-                    dt=dt, dq=dq, tend=tmp_tend, qend=tmp_qend)
+                c.reset_at_break(dt=dt, dq=dq, tend=tmp_tend, qend=tmp_qend)
             else:
                 c.add_record(fields)
         elif len(fields) == 1:
             c.add_record(fields)
-            yield(c.print_chain())
+            yield (c.print_chain())
             c = None
 
 
-def split_chain_io(
-    fn_chain: str, fn_out: str,
-    min_bp: int, min_gap: int
-) -> None:
+def split_chain_io(fn_chain: str, fn_out: str, min_bp: int,
+                   min_gap: int) -> None:
     if fn_chain == '-':
         f = sys.stdin
     else:
@@ -117,6 +119,7 @@ if __name__ == '__main__':
     print(f' * min_bp : {args.min_bp}', file=sys.stderr)
     print(f' * min_gap: {args.min_gap}', file=sys.stderr)
 
-    split_chain_io(
-        fn_chain=args.chain, fn_out=args.output,
-        min_bp=args.min_bp, min_gap=args.min_gap)
+    split_chain_io(fn_chain=args.chain,
+                   fn_out=args.output,
+                   min_bp=args.min_bp,
+                   min_gap=args.min_gap)

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 '''
 Filter a chain file
 
@@ -12,34 +13,41 @@ import sys
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-c',
+                        '--chain',
+                        default='',
+                        help='Path to the chain file')
+    parser.add_argument('-o',
+                        '--output',
+                        default='',
+                        help='Path to the output merged chain file.')
     parser.add_argument(
-        '-c', '--chain', default='',
-        help='Path to the chain file'
+        '-u',
+        '--unique',
+        action='store_true',
+        help=
+        'Activate to remove mappings that are not 1-1. Chains with smaller scores are excluded.'
     )
     parser.add_argument(
-        '-o', '--output', default='',
-        help='Path to the output merged chain file.'
+        '-oc',
+        '--overlapped_chain',
+        default='',
+        help=
+        'Path to the chains that overlap with higher-scoring chains in `-c`. Leave this field empty to not write. Must with `-u`. [None]'
     )
     parser.add_argument(
-        '-u', '--unique', action='store_true',
-        help='Activate to remove mappings that are not 1-1. Chains with smaller scores are excluded.'
-    )
-    parser.add_argument(
-        '-oc', '--overlapped_chain', default='',
-        help='Path to the chains that overlap with higher-scoring chains in `-c`. Leave this field empty to not write. Must with `-u`. [None]'
-    )
-    parser.add_argument(
-        '-s', '--segment_size', default=0, type=int,
-        help='Minimal segment size (the sum of chain segment sizes) allowed. [0]'
-    )
+        '-s',
+        '--segment_size',
+        default=0,
+        type=int,
+        help=
+        'Minimal segment size (the sum of chain segment sizes) allowed. [0]')
     args = parser.parse_args()
     return args
 
 
-def filter_core(
-    c: utils.Chain, segment_size: int, unique: bool,
-    ttree_dict: dict, qtree_dict: dict
-) -> list:
+def filter_core(c: utils.Chain, segment_size: int, unique: bool,
+                ttree_dict: dict, qtree_dict: dict) -> list:
     filter_size = False
     filter_overlap_target = False
     filter_overlap_query = False
@@ -65,10 +73,11 @@ def filter_core(
     return filter_size, filter_overlap_target, filter_overlap_query
 
 
-def filter(
-    fn_chain: str, fn_out: str, unique: bool, segment_size: int,
-    fn_overlapped_chain: str=''
-):
+def filter(fn_chain: str,
+           fn_out: str,
+           unique: bool,
+           segment_size: int,
+           fn_overlapped_chain: str = ''):
     stree_dict = {}
     qtree_dict = {}
 
@@ -93,10 +102,13 @@ def filter(
             c.add_record_three(fields)
         elif len(fields) == 1:
             c.add_record_one(fields)
-            
+
             filter_size, filter_overlap_target, filter_overlap_query = filter_core(
-                c=c, segment_size=segment_size, unique=unique,
-                ttree_dict=stree_dict, qtree_dict=qtree_dict)
+                c=c,
+                segment_size=segment_size,
+                unique=unique,
+                ttree_dict=stree_dict,
+                qtree_dict=qtree_dict)
 
             msg = f'score={c.score}\ttarget={c.target}:{c.tstart}-{c.tend}\tquery={c.query}:{c.qstart}-{c.qend}\t{c.strand}\t'
 
@@ -108,9 +120,10 @@ def filter(
             elif filter_overlap_query and fn_overlapped_chain:
                 msg += 'OVERLAP_QUERY'
                 print(c.print_chain(), file=foc)
-            
+
             # if pass
-            if not any([filter_size, filter_overlap_target, filter_overlap_query]):
+            if not any(
+                [filter_size, filter_overlap_target, filter_overlap_query]):
                 msg += 'PASS'
                 # Update target tree dict
                 if c.target in stree_dict:
@@ -132,10 +145,12 @@ if __name__ == '__main__':
     args = parse_args()
     if args.overlapped_chain:
         if not args.unique:
-            print('[E::filter] `-u` must be set if `-oc` is not empty', file=sys.stderr)
+            print('[E::filter] `-u` must be set if `-oc` is not empty',
+                  file=sys.stderr)
             exit(1)
 
-    filter(
-        fn_chain=args.chain, fn_out=args.output,
-        unique=args.unique, segment_size=args.segment_size,
-        fn_overlapped_chain=args.overlapped_chain)
+    filter(fn_chain=args.chain,
+           fn_out=args.output,
+           unique=args.unique,
+           segment_size=args.segment_size,
+           fn_overlapped_chain=args.overlapped_chain)
