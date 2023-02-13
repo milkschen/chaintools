@@ -7,8 +7,9 @@ Johns Hopkins University
 2022
 '''
 import argparse
-import utils
 import sys
+
+from chaintools import utils
 
 
 def parse_args():
@@ -73,11 +74,11 @@ def filter_core(c: utils.Chain, segment_size: int, unique: bool,
     return filter_size, filter_overlap_target, filter_overlap_query
 
 
-def filter(fn_chain: str,
-           fn_out: str,
-           unique: bool,
-           segment_size: int,
-           fn_overlapped_chain: str = ''):
+def chain_filter(fn_chain: str,
+                 fn_out: str,
+                 unique: bool,
+                 segment_size: int,
+                 fn_overlapped_chain: str = ''):
     stree_dict = {}
     qtree_dict = {}
 
@@ -141,16 +142,20 @@ def filter(fn_chain: str,
             c = None
 
 
-if __name__ == '__main__':
+def main(argv=sys.argv):
     args = parse_args()
     if args.overlapped_chain:
         if not args.unique:
-            print('[E::filter] `-u` must be set if `-oc` is not empty',
+            print('[E::chain_filter] `-u` must be set if `-oc` is not empty',
                   file=sys.stderr)
             exit(1)
 
-    filter(fn_chain=args.chain,
-           fn_out=args.output,
-           unique=args.unique,
-           segment_size=args.segment_size,
-           fn_overlapped_chain=args.overlapped_chain)
+    chain_filter(fn_chain=args.chain,
+                 fn_out=args.output,
+                 unique=args.unique,
+                 segment_size=args.segment_size,
+                 fn_overlapped_chain=args.overlapped_chain)
+
+
+if __name__ == '__main__':
+    main()

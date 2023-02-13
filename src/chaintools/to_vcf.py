@@ -11,10 +11,12 @@ Johns Hopkins University
 2021-2022
 '''
 import argparse
-import pysam
-import utils
 import sys
 from typing import TextIO
+
+import pysam
+
+from chaintools import utils
 
 
 def parse_args():
@@ -23,27 +25,25 @@ def parse_args():
                         '--chain',
                         default='',
                         help='Path to the chain file')
-    parser.add_argument(
-        '-t',
-        '--targetfasta',
-        required=True,
-        help=
-        'Path to the fasta file for the target (reference) genome of the chain file'
-    )
-    parser.add_argument(
-        '-q',
-        '--queryfasta',
-        required=True,
-        help='Path to the fasta file for the query genome of the chain file')
+    parser.add_argument('-t',
+                        '--targetfasta',
+                        required=True,
+                        help=('Path to the fasta file for the '
+                              'target (reference) genome of the chain file'))
+    parser.add_argument('-q',
+                        '--queryfasta',
+                        required=True,
+                        help=('Path to the fasta file for the query '
+                              'genome of the chain file'))
     parser.add_argument('-o',
                         '--output',
                         default='',
-                        help='Path to the output SAM-formatted file.')
+                        help='Path to the output VCF file.')
     args = parser.parse_args()
     return args
 
 
-def write_to_sam(f: TextIO,
+def write_to_vcf(f: TextIO,
                  targetref: pysam.FastaFile = None,
                  queryref: pysam.FastaFile = None) -> str:
     for line in f:
@@ -55,39 +55,45 @@ def write_to_sam(f: TextIO,
         else:
             c.add_record(fields)
             if len(fields) == 1:
-                yield c.to_sam(targetref=targetref, queryref=queryref)
+                yield c.to_vcf(targetref=targetref, queryref=queryref)
                 c = None
 
 
-def write_to_sam_io(fn_chain: str,
-                    fn_paf: str,
+def write_to_vcf_io(fn_chain: str,
+                    fn_vcf: str,
                     fn_targetfasta: str = '',
                     fn_queryfasta: str = '') -> None:
     if fn_chain == '-':
         f = sys.stdin
     else:
         f = open(fn_chain, 'r')
-    if fn_paf:
-        fo = open(fn_paf, 'w')
+    if fn_vcf:
+        fo = open(fn_vcf, 'w')
     else:
         fo = sys.stdout
-
-    print(utils.sam_header(utils.get_target_entries(fn_chain)), file=fo)
 
     targetref = utils.fasta_reader(fn_targetfasta)
     queryref = utils.fasta_reader(fn_queryfasta)
 
-    out = write_to_sam(f=f, targetref=targetref, queryref=queryref)
+    print(utils.vcf_header(utils.get_target_entries(fn_chain)), file=fo)
+
+    out = write_to_vcf(f=f, targetref=targetref, queryref=queryref)
     while True:
         try:
-            print(next(out), file=fo)
+            nextline = next(out)
+            if nextline:
+                print(nextline, file=fo)
         except StopIteration:
             break
 
 
-if __name__ == '__main__':
+def main(argv=sys.argv):
     args = parse_args()
-    write_to_sam_io(fn_chain=args.chain,
-                    fn_paf=args.output,
+    write_to_vcf_io(fn_chain=args.chain,
+                    fn_vcf=args.output,
                     fn_targetfasta=args.targetfasta,
                     fn_queryfasta=args.queryfasta)
+
+
+if __name__ == '__main__':
+    main()

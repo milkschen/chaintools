@@ -7,10 +7,10 @@ Johns Hopkins University
 2021-2022
 '''
 import argparse
-import utils
-import pysam
 import re
 import sys
+
+from chaintools import utils
 
 
 def parse_args():
@@ -19,25 +19,21 @@ def parse_args():
                         '--chain',
                         required=True,
                         help='Path to the input chain file.')
-    parser.add_argument(
-        '-o',
-        '--out',
-        default='',
-        help='Path to the output verbose chain file. [empty string]')
-    parser.add_argument(
-        '-b',
-        '--bed_prefix',
-        default='',
-        help=
-        'Prefix to the BED files that specify the aligned regions in `-c`. [empty string]'
-    )
-    parser.add_argument(
-        '-s',
-        '--summary',
-        default='',
-        help=
-        'Path to the output summary. Leave empty for no output. [empty string]'
-    )
+    parser.add_argument('-o',
+                        '--out',
+                        default='',
+                        help=('Path to the output verbose chain '
+                              'file. [empty string]'))
+    parser.add_argument('-b',
+                        '--bed_prefix',
+                        default='',
+                        help=('Prefix to the BED files that specify '
+                              'the aligned regions in `-c`. [empty string]'))
+    parser.add_argument('-s',
+                        '--summary',
+                        default='',
+                        help=('Path to the output summary. '
+                              'Leave empty for no output. [empty string]'))
     parser.add_argument('-fs',
                         '--s_ref',
                         default='',
@@ -85,7 +81,8 @@ def annotate(chain: str, out: str, bed_prefix: str, summary: str, s_ref: dict,
         fs = open(summary, 'w')
         # Write header
         print(
-            f'SIZE\tHDIST\tSOURCE\tS_START\tS_END\tSTRAND\tTARGET\tT_START\tT_END',
+            'SIZE\tHDIST\tSOURCE\tS_START\tS_END\t'
+            'STRAND\tTARGET\tT_START\tT_END',
             file=fs)
     else:
         fs = None
@@ -117,7 +114,8 @@ def annotate(chain: str, out: str, bed_prefix: str, summary: str, s_ref: dict,
             ds = int(fields[1])
             dd = int(fields[2])
             if strand == '+':
-                msg = f'\t{source}:{s_start}-{s_start+l}=>{target}:{t_start}-{t_start+l} ({t_start-s_start})'
+                msg = (f'\t{source}:{s_start}-{s_start+l}=>{target}:'
+                       f'{t_start}-{t_start+l} ({t_start-s_start})')
                 if bed_prefix != '':
                     f_sbed.write(f'{source}\t{s_start}\t{s_start+l}\n')
                     f_dbed.write(f'{target}\t{t_start}\t{t_start+l}\n')
@@ -128,7 +126,8 @@ def annotate(chain: str, out: str, bed_prefix: str, summary: str, s_ref: dict,
                                                     t_start + l)
                     msg += f'\t{hd:.2f}'
             else:
-                msg = f'\t{source}:{s_start}-{s_start+l}=>{target}:{t_start}-{t_start-l} ({t_start-s_start})'
+                msg = (f'\t{source}:{s_start}-{s_start+l}=>{target}:'
+                       f'{t_start}-{t_start-l} ({t_start-s_start})')
                 if bed_prefix != '':
                     f_sbed.write(f'{source}\t{s_start}\t{s_start+l}\n')
                     f_dbed.write(f'{target}\t{t_start-l}\t{t_start}\n')
@@ -186,7 +185,7 @@ def annotate(chain: str, out: str, bed_prefix: str, summary: str, s_ref: dict,
           file=sys.stderr)
 
 
-if __name__ == '__main__':
+def main(argv=sys.argv):
     args = parse_args()
 
     print('Input chain             :', args.chain, file=sys.stderr)
@@ -206,3 +205,7 @@ if __name__ == '__main__':
              summary=args.summary,
              s_ref=s_ref,
              t_ref=t_ref)
+
+
+if __name__ == '__main__':
+    main()

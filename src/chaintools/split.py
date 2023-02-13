@@ -7,9 +7,10 @@ Johns Hopkins University
 2022
 '''
 import argparse
-import utils
 import sys
 from typing import TextIO
+
+from chaintools import utils
 
 
 def parse_args():
@@ -113,7 +114,7 @@ def split_chain_io(fn_chain: str, fn_out: str, min_bp: int,
             break
 
 
-if __name__ == '__main__':
+def main(argv=sys.argv):
     args = parse_args()
     print(f'Split parameters:', file=sys.stderr)
     print(f' * min_bp : {args.min_bp}', file=sys.stderr)
@@ -123,3 +124,7 @@ if __name__ == '__main__':
                    fn_out=args.output,
                    min_bp=args.min_bp,
                    min_gap=args.min_gap)
+
+
+if __name__ == '__main__':
+    main()

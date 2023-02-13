@@ -7,8 +7,8 @@ Johns Hopkins University
 2022
 '''
 import argparse
-import sys
 import re
+import sys
 
 
 def parse_args():
@@ -86,9 +86,13 @@ def invert(in_fn: str, out_fn: str) -> None:
             print('', file=fo)
 
 
-if __name__ == '__main__':
+def main(argv=sys.argv):
     args = parse_args()
 
     print('Input chain:', args.chain, file=sys.stderr)
     print('Output chain (verbose):', args.out, file=sys.stderr)
     invert(in_fn=args.chain, out_fn=args.out)
+
+
+if __name__ == '__main__':
+    main()
