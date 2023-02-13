@@ -5,16 +5,16 @@ on:
     branches: [ main ]
     paths:
       - '.github/**'
-      - 'src/**'
-      - 'src/utils-test.py'
+      - 'src/chaintools/**'
+      - 'src/chaintools/utils-test.py'
       - 'testdata/**'
   pull_request:
     branches:
       - 'main'
     paths:      
       - '.github/**'
-      - 'src/**'
-      - 'src/utils-test.py'
+      - 'src/chaintools/**'
+      - 'src/chaintools/utils-test.py'
       - 'testdata/**'
 
 jobs:
@@ -38,7 +38,8 @@ jobs:
         run: |
             pip install intervaltree
             pip install pysam
+            pip install pandas
 
       - name: Run utils-test
         run: |
-            python src/utils-test.py
+            python src/chaintools/utils-test.py
