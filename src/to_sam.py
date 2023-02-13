@@ -23,18 +23,16 @@ def parse_args():
                         '--chain',
                         default='',
                         help='Path to the chain file')
-    parser.add_argument(
-        '-t',
-        '--targetfasta',
-        required=True,
-        help=
-        'Path to the fasta file for the target (reference) genome of the chain file'
-    )
-    parser.add_argument(
-        '-q',
-        '--queryfasta',
-        required=True,
-        help='Path to the fasta file for the query genome of the chain file')
+    parser.add_argument('-t',
+                        '--targetfasta',
+                        required=True,
+                        help=('Path to the fasta file for the target '
+                              '(reference) genome of the chain file'))
+    parser.add_argument('-q',
+                        '--queryfasta',
+                        required=True,
+                        help=('Path to the fasta file for the '
+                              'query genome of the chain file'))
     parser.add_argument('-o',
                         '--output',
                         default='',
@@ -85,9 +83,13 @@ def write_to_sam_io(fn_chain: str,
             break
 
 
-if __name__ == '__main__':
+def main(argv=sys.argv):
     args = parse_args()
     write_to_sam_io(fn_chain=args.chain,
                     fn_paf=args.output,
                     fn_targetfasta=args.targetfasta,
                     fn_queryfasta=args.queryfasta)
+
+
+if __name__ == '__main__':
+    main()
