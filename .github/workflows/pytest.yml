@@ -34,9 +34,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       
-      - name: Update $PYTHONPATH
+      - name: Update PYTHONPATH
         run: |
-            echo "$(pwd)/src" >> $PYTHONPATH
+            echo "PYTHONPATH=$(pwd)/src" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
