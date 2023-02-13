@@ -44,6 +44,6 @@ jobs:
             pip install pysam
             pip install pandas
 
-      - name: Run utils-test
+      - name: Run test_utils
         run: |
-            python src/chaintools/utils-test.py
+            python src/chaintools/test_utils.py
