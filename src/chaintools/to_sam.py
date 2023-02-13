@@ -11,10 +11,12 @@ Johns Hopkins University
 2021-2022
 '''
 import argparse
-import pysam
-import utils
 import sys
 from typing import TextIO
+
+import pysam
+
+from chaintools import utils
 
 
 def parse_args():

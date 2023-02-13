@@ -7,10 +7,10 @@ Johns Hopkins University
 2022
 '''
 import argparse
-import pysam
-import utils
 import sys
 from typing import TextIO
+
+from chaintools import utils
 
 
 def parse_args():
@@ -63,10 +63,14 @@ def write_to_bed_io(fn_chain: str, fn_bed: str, coord: str) -> None:
             break
 
 
-if __name__ == '__main__':
+def main(argv=sys.argv):
     args = parse_args()
     if args.coord not in ['target', 'query']:
         raise (ValueError,
                'Illegal `-coord` value. Should be in ["target", "query"]')
 
     write_to_bed_io(fn_chain=args.chain, fn_bed=args.output, coord=args.coord)
+
+
+if __name__ == '__main__':
+    main()

@@ -7,9 +7,11 @@ Johns Hopkins University
 2022
 '''
 import argparse
-import pandas as pd
-import utils
 import sys
+
+import pandas as pd
+
+from chaintools import utils
 
 
 def parse_args():
@@ -68,7 +70,10 @@ def stats(fn_chain: str, fn_out: str):
         print(df)
 
 
-if __name__ == '__main__':
+def main(argv=sys.argv):
     args = parse_args()
-
     stats(fn_chain=args.chain, fn_out=args.output)
+
+
+if __name__ == '__main__':
+    main()

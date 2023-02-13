@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chaintools"
+version = "0.3"
+authors = [
+  { name="Nae-Chyun Chen (@milkschen)" },
+  { name="Nancy F. Hansen (@nhansen)" }
+]
+description = "Utilities for the genomic chain format"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Linux",
+]
+dependencies = [
+  "pysam>=0.15.3",
+  "intervaltree>=3.1.0"
+]
+
+[project.scripts]
+chain_to_bed = "chaintools.to_bed:main"
+chain_to_paf = "chaintools.to_paf:main"
+chain_to_sam = "chaintools.to_sam:main"
+chain_to_vcf = "chaintools.to_vcf:main"
+chain_filter = "chaintools.chain_filter:main"
+chain_annotate = "chaintools.annotate:main"
+chain_invert = "chaintools.invert:main"
+chain_split = "chaintools.split:main"
+chain_stats = "chaintools.stats:main"
+
+[project.urls]
+"Homepage" = "https://github.com/milkschen/chaintools"

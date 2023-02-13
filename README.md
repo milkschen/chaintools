@@ -13,7 +13,7 @@ Lift-over software such as [UCSC LiftOver](https://genome.ucsc.edu/cgi-bin/hgLif
 * [Convert to PAF](#to_paf)
 * [Convert to SAM](#to_sam)
 * [Convert to VCF](#to_vcf)
-* [Filter](#filter)
+* [Filter](#chain_filter)
 * [Invert](#invert)
 * [Split](#split)
 * [Stats](#stats)
@@ -31,6 +31,12 @@ git clone git@github.com:milkschen/chaintools.git
 
 ## Usage
 
+### Set up $PYTHONPATH
+
+```
+export PYTHONPATH=$(pwd)/src/
+```
+
 <a name="annotate"></a>
 ### Annotate 
 Annotate a chain file:
@@ -40,11 +46,11 @@ Annotate a chain file:
 
 ```
 # Annotate contig and positions
-python src/annotate.py -c <in.chain> -o <out.chain>
+python src/chaintools/annotate.py -c <in.chain> -o <out.chain>
 # Add identity
-python src/annotate.py -c <in.chain> -o <out.chain> -fs <target.fasta> -ft <query.fasta>
+python src/chaintools/annotate.py -c <in.chain> -o <out.chain> -fs <target.fasta> -ft <query.fasta>
 # Also write liftable regions to BED files
-python src/annotate.py -c <in.chain> -o <out.chain> -fs <target.fasta> -ft <query.fasta> -b <bed_prefix>
+python src/chaintools/annotate.py -c <in.chain> -o <out.chain> -fs <target.fasta> -ft <query.fasta> -b <bed_prefix>
 ```
 
 
@@ -54,9 +60,9 @@ Convert a chain file to the BED format using either target or query coordinates
 
 ```
 # Report using the target coordinates
-python src/to_bed.py -c <in.chain> -o <out.bed> --coord target
+python src/chaintools/to_bed.py -c <in.chain> -o <out.bed> --coord target
 # Report using the query coordinates
-python src/to_bed.py -c <in.chain> -o <out.bed> --coord query
+python src/chaintools/to_bed.py -c <in.chain> -o <out.bed> --coord query
 ```
 
 
@@ -70,7 +76,7 @@ If both `target.fa` and `query.fa` are provided, this script checks the referenc
 Otherwise, it uses `[MID]+` and `[X]+` at chain break points. A breakpoint is a gap wrt both target and query, e.g., `149 341 2894`.
 
 ```
-python src/to_paf.py -c <in.chain> -o <out.paf> [-t <target.fa> -q <query.fa>]
+python src/chaintools/to_paf.py -c <in.chain> -o <out.paf> [-t <target.fa> -q <query.fa>]
 ```
 
 
@@ -81,7 +87,7 @@ using the target fasta file for the genome *from* which
 the chain lifts, and the query fasta file for the genome *to* which the chain lifts.
 
 ```
-python src/to_sam.py -c <in.chain> -t <target.fa> -q <query.fa> -o <out.sam> 
+python src/chaintools/to_sam.py -c <in.chain> -t <target.fa> -q <query.fa> -o <out.sam> 
 ```
 
 Note: For a chain file used to convert from a target genome's coordinates to a query
@@ -96,11 +102,11 @@ using the target fasta file for the genome *from* which
 the chain lifts, and the query fasta file for the genome *to* which the chain lifts.
 
 ```
-python src/to_vcf.py -c <in.chain> -t <target.fa> -q <query.fa> -o <out.vcf>
+python src/chaintools/to_vcf.py -c <in.chain> -t <target.fa> -q <query.fa> -o <out.vcf>
 ```
 
 
-<a name="filter"></a>
+<a name="chain_filter"></a>
 ### Filter
 Filter a chain file by critera including chain sizes and overlap status. 
 The size of a chain is the sum of all its segments, including matches (`=`) and mismatches (`X`). 
@@ -108,9 +114,9 @@ The overlap filter makes sure no chains overlap wrt either target or query refer
 
 ```
 # Filter by chain size
-python src/filter.py -c <in.chain> -o <out.filtered.chain> -s <size>
+python src/chaintools/chain_filter.py -c <in.chain> -o <out.filtered.chain> -s <size>
 # Filter by both chain size and overlap status
-python src/filter.py -c <in.chain> -o <out.filtered.chain> -u -oc <out.overlapped.chain> -s <size>
+python src/chaintools/chain_filter.py -c <in.chain> -o <out.filtered.chain> -u -oc <out.overlapped.chain> -s <size>
 ```
 
 
@@ -119,7 +125,7 @@ python src/filter.py -c <in.chain> -o <out.filtered.chain> -u -oc <out.overlappe
 Invert a chain file by switching the target and query references
 
 ```
-python src/invert.py -c <a_to_b.chain> -o <b_to_a.chain>
+python src/chaintools/invert.py -c <a_to_b.chain> -o <b_to_a.chain>
 ```
 
 
@@ -128,7 +134,7 @@ python src/invert.py -c <a_to_b.chain> -o <b_to_a.chain>
 Split a chain at large gaps or breakpoints. A breakpoint is a gap wrt both target and query, e.g., `149 341 2894`.
 
 ```
-python src/split.py -c <in.chain> -o <split.chain> [--min_gap <INT> --min_bp <INT>]
+python src/chaintools/split.py -c <in.chain> -o <split.chain> [--min_gap <INT> --min_bp <INT>]
 ```
 
 
@@ -137,5 +143,5 @@ python src/split.py -c <in.chain> -o <split.chain> [--min_gap <INT> --min_bp <IN
 Calculate summary statistics of a chain file
 
 ```
-python src/stats.py -c <in.chain> -o <stats.tsv>
+python src/chaintools/stats.py -c <in.chain> -o <stats.tsv>
 ```
