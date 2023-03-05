@@ -18,6 +18,14 @@ from chaintools import (chain_filter, split, to_bed, to_paf, to_sam, to_vcf,
                         utils)
 
 
+class TestUtils(unittest.TestCase):
+
+    def test_reverse_complement(self):
+        self.assertEquals(utils.reverse_complement("acg"), "CGT")
+        self.assertEquals(utils.reverse_complement("ACG"), "CGT")
+        self.assertEquals(utils.reverse_complement("TCGAN"), "NTCGA")
+
+
 class TestReadingChain(unittest.TestCase):
 
     def read_and_compare(self, fn):

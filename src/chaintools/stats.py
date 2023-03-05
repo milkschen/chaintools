@@ -55,7 +55,9 @@ def stats(fn_chain: str, fn_out: str):
                 num_reversed += 1
                 seglen_reversed += c.seglen
 
-            msg = f'{c.target}:{c.tstart}-{c.tend}\t{c.query}:{c.qstart}-{c.qend}\t{c.score}\t{c.strand}\t{c.seglen}'
+            msg = (f'{c.target}:{c.tstart}-{c.tend}\t'
+                   f'{c.query}:{c.qstart}-{c.qend}'
+                   f'\t{c.score}\t{c.strand}\t{c.seglen}')
             print(msg, file=sys.stderr)
 
             c = None

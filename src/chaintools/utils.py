@@ -9,20 +9,24 @@ NIH/NHGRI
 
 2021-2022
 '''
-import intervaltree
-import pysam
 import sys
 
-'''
-Read a FASTA file as a dict if a file name is given. If not, return an empty dict.
-'''
+import intervaltree
+import pysam
+
+
 def read_fasta(ref_fn: str) -> dict:
+    '''Reads a FASTA file as a dict.
+    
+    If given an empty path, return an empty dict.
+    '''
     ref = {}
     if ref_fn != '':
         f = pysam.FastaFile(ref_fn)
         for r in f.references:
             ref[r] = f[r].upper()
     return ref
+
 
 def fasta_reader(ref_fn: str) -> pysam.FastaFile:
     if ref_fn:
@@ -32,32 +36,32 @@ def fasta_reader(ref_fn: str) -> pysam.FastaFile:
 
 
 def reverse_complement(seq: str) -> str:
-    d = {'A': 'T', 'a': 'T', 'C': 'G', 'c': 'G',
-         'G': 'C', 'g': 'G', 'T': 'A', 't': 'A',
-         'N': 'N'}
-    rc = ''
-    for s in seq:
-        if s in d:
-            rc += d[s]
-        else:
-            print(f'Base "{s}" is not a known nucleotide and is converted to N',
-                  file=sys.stderr)
-            rc += 'N'
-    return rc[::-1]
+    '''Returns the reverse complement of a DNA sequence.'''
+    d = {
+        'A': 'T',
+        'a': 'T',
+        'C': 'G',
+        'c': 'G',
+        'G': 'C',
+        'g': 'C',
+        'T': 'A',
+        't': 'A',
+        'N': 'N'
+    }
+    nuc_trans = str.maketrans('AaCcGgTtN', 'TTGGCCAAN')
+    return seq.translate(nuc_trans)[::-1]
 
 
-def compute_hamming_dist(
-    forward: bool,
-    ref1: dict, contig1: str, start1: int, end1: int,
-    ref2: dict, contig2: str, start2: int, end2: int
-) -> float:
+def compute_hamming_dist(forward: bool, ref1: dict, contig1: str, start1: int,
+                         end1: int, ref2: dict, contig2: str, start2: int,
+                         end2: int) -> float:
     if contig1 in ref1:
-        s1 = ref1[contig1][start1: end1]
+        s1 = ref1[contig1][start1:end1]
     else:
         print(f'Warning : {contig1} not in ref1', file=sys.stderr)
         return 0
     if contig2 in ref2:
-        s2 = ref2[contig2][start2: end2]
+        s2 = ref2[contig2][start2:end2]
         if not forward:
             s2 = reverse_complement(s2)
     else:
@@ -92,6 +96,8 @@ Outputs:
         key: target contig
         value: target contig length
 '''
+
+
 def get_target_entries(fn: str) -> dict:
     CC = ChainConst()
     dict_contig_length = {}
@@ -122,6 +128,7 @@ class ChainConst():
 
 
 class Chain(ChainConst):
+
     def __init__(self, fields=None):
         self.ttree = intervaltree.IntervalTree()
         self.qtree = intervaltree.IntervalTree()
@@ -163,9 +170,9 @@ class Chain(ChainConst):
             self.ttree[self.toffset : self.toffset + segment_size] = \
                 (self.qoffset - self.toffset, self.dt, self.dq)
             if self.strand == '+':
-                self.qtree[self.qoffset: self.qoffset + segment_size] = 1
+                self.qtree[self.qoffset:self.qoffset + segment_size] = 1
             else:
-                self.qtree[self.qoffset - segment_size: self.qoffset] = 1
+                self.qtree[self.qoffset - segment_size:self.qoffset] = 1
 
         if len(fields) == 3:
             self.dt = int(fields[self.C_DT])
@@ -200,16 +207,18 @@ class Chain(ChainConst):
         return ''
 
     def print_hdr(self) -> str:
-        return (f'chain {self.score} '
-               f'{self.target} {self.tlen} {self.tstrand} {self.tstart} {self.tend} '
-               f'{self.query} {self.qlen} {self.qstrand} {self.qstart} {self.qend} '
-               f'{self.id}\n')
+        return (
+            f'chain {self.score} '
+            f'{self.target} {self.tlen} {self.tstrand} {self.tstart} {self.tend} '
+            f'{self.query} {self.qlen} {self.qstrand} {self.qstart} {self.qend} '
+            f'{self.id}\n')
 
     def print_chain(self) -> str:
-        msg = (f'chain {self.score} '
-               f'{self.target} {self.tlen} {self.tstrand} {self.tstart} {self.tend} '
-               f'{self.query} {self.qlen} {self.qstrand} {self.qstart} {self.qend} '
-               f'{self.id}\n')
+        msg = (
+            f'chain {self.score} '
+            f'{self.target} {self.tlen} {self.tstrand} {self.tstart} {self.tend} '
+            f'{self.query} {self.qlen} {self.qstrand} {self.qstart} {self.qend} '
+            f'{self.id}\n')
         intervals = sorted(self.ttree.all_intervals)
         for i, intvl in enumerate(intervals):
             if i == 0:
@@ -218,8 +227,10 @@ class Chain(ChainConst):
                     msg += (f'{intvl.begin - self.tstart - intvl.data[1]}\t'
                             f'{intvl.data[1]}\t{intvl.data[2]}\n')
             else:
-                pintvl = intervals[i-1]
-                msg += (f'{pintvl.end - pintvl.begin}\t{intvl.data[1]}\t{intvl.data[2]}\n')
+                pintvl = intervals[i - 1]
+                msg += (
+                    f'{pintvl.end - pintvl.begin}\t{intvl.data[1]}\t{intvl.data[2]}\n'
+                )
 
         # If the size of the last segment is greater than 0
         if intvl.end == self.tend:
@@ -229,11 +240,9 @@ class Chain(ChainConst):
                     f'{self.tend - intvl.end}\t'
                     f'{self.qend - (intvl.end+intvl.data[0])}\n0')
         return msg
-    
+
     # Reset a Chain object at a given breakpoint
-    def reset_at_break(
-        self, dt: int, dq: int, tend: int, qend: int
-    ) -> None:
+    def reset_at_break(self, dt: int, dq: int, tend: int, qend: int) -> None:
         self.ttree = intervaltree.IntervalTree()
         self.qtree = intervaltree.IntervalTree()
         self.tstart = self.tend + dt
@@ -253,7 +262,7 @@ class Chain(ChainConst):
         # Update ID
         if len(self.id.split('.')) > 1:
             l = self.id.split('.')
-            self.id = l[0] + '.' + str(int(l[1])+1)
+            self.id = l[0] + '.' + str(int(l[1]) + 1)
         else:
             self.id = self.id + '.1'
 
@@ -265,7 +274,7 @@ class Chain(ChainConst):
 
         self_sorted_intervals = sorted(self.ttree.all_intervals)
         c_sorted_intervals = sorted(c.stree.all_intervals)
-        
+
         clone_tr = self.ttree.copy()
         for c_intvl in c_sorted_intervals:
             for i_s, s_intvl in enumerate(self_sorted_intervals):
@@ -280,8 +289,10 @@ class Chain(ChainConst):
                             # print(s_intvl)
                             start = min(s_intvl.begin, c_intvl.begin)
                             diff = s_intvl.begin - c_intvl.begin
-                            data = (s_intvl.data[0], s_intvl.data[1]-diff, s_intvl.data[2]-diff)
-                            updated_s_intvl = intervaltree.Interval(start, s_intvl.end, data)
+                            data = (s_intvl.data[0], s_intvl.data[1] - diff,
+                                    s_intvl.data[2] - diff)
+                            updated_s_intvl = intervaltree.Interval(
+                                start, s_intvl.end, data)
                             clone_tr.remove(s_intvl)
                             c.stree.remove(c_intvl)
                             clone_tr.add(updated_s_intvl)
@@ -295,19 +306,24 @@ class Chain(ChainConst):
                             c.stree.remove(c_intvl)
                             end = max(s_intvl.end, c_intvl.end)
                             diff = c_intvl.end - s_intvl.end
-                            clone_tr.add(intervaltree.Interval(s_intvl.begin, end, s_intvl[2]))
-                            next_s_intvl = self_sorted_intervals[i_s+1]
-                            next_data = (
-                                next_s_intvl.data[0], next_s_intvl.data[1]-diff,
-                                next_s_intvl.data[2]-diff)
+                            clone_tr.add(
+                                intervaltree.Interval(s_intvl.begin, end,
+                                                      s_intvl[2]))
+                            next_s_intvl = self_sorted_intervals[i_s + 1]
+                            next_data = (next_s_intvl.data[0],
+                                         next_s_intvl.data[1] - diff,
+                                         next_s_intvl.data[2] - diff)
                             updated_next_s_intvl = intervaltree.Interval(
-                                next_s_intvl.begin, next_s_intvl.end, next_data)
+                                next_s_intvl.begin, next_s_intvl.end,
+                                next_data)
                             clone_tr.remove(next_s_intvl)
                             clone_tr.add(updated_next_s_intvl)
                         elif c_intvl.begin < s_intvl.begina and c_intvl.end > s_intvl.end:
-                            print('During merging, the new interval consumes the existing one',
+                            print(
+                                'During merging, the new interval consumes the existing one',
+                                file=sys.stderr)
+                            print('This operation is not yet supported',
                                   file=sys.stderr)
-                            print('This operation is not yet supported', file=sys.stderr)
                             return False
                     else:
                         return False
@@ -336,10 +352,11 @@ class Chain(ChainConst):
     Outputs:
         - queryendpos: updated queryendpos
     '''
-    def update_cigar_indel(
-        self, deltaq: int, deltat: int, 
-        queryendpos: int=0
-    ) -> int:
+
+    def update_cigar_indel(self,
+                           deltaq: int,
+                           deltat: int,
+                           queryendpos: int = 0) -> int:
         if deltaq > 0:
             self.cigarstring += f'{deltaq}I'
             self.nmtagval += deltaq
@@ -365,11 +382,15 @@ class Chain(ChainConst):
     Outputs:
         - queryendpos: updated queryendpos
     '''
+
     def update_cigar_match(
-        self, intvl: intervaltree.Interval,
-        queryref: pysam.FastaFile, qname: str,
-        targetref: pysam.FastaFile, tname: str,
-        queryendpos: int=0,
+        self,
+        intvl: intervaltree.Interval,
+        queryref: pysam.FastaFile,
+        qname: str,
+        targetref: pysam.FastaFile,
+        tname: str,
+        queryendpos: int = 0,
     ) -> int:
         segmentlength = intvl.end - intvl.begin
         # If reference sequences are provided
@@ -377,21 +398,24 @@ class Chain(ChainConst):
             if self.strand == "+":
                 alignseq_qstart = intvl.begin + intvl.data[0]
                 alignseq_qend = intvl.end + intvl.data[0]
-                alignseq_q = queryref.fetch(
-                    reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
+                alignseq_q = queryref.fetch(reference=qname,
+                                            start=alignseq_qstart,
+                                            end=alignseq_qend).upper()
                 queryendpos += segmentlength
             else:
                 alignseq_qend = intvl.begin + intvl.data[0]
                 alignseq_qstart = alignseq_qend - (intvl.end - intvl.begin)
-                alignseq_q = queryref.fetch(
-                    reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
+                alignseq_q = queryref.fetch(reference=qname,
+                                            start=alignseq_qstart,
+                                            end=alignseq_qend).upper()
                 alignseq_q = reverse_complement(alignseq_q)
                 queryendpos -= segmentlength
 
             alignseq_tstart = intvl.begin
             alignseq_tend = intvl.end
-            alignseq_t = targetref.fetch(
-                reference=tname, start=alignseq_tstart, end=alignseq_tend).upper()
+            alignseq_t = targetref.fetch(reference=tname,
+                                         start=alignseq_tstart,
+                                         end=alignseq_tend).upper()
 
             nummatches = 0
             nummismatches = 0
@@ -427,9 +451,8 @@ class Chain(ChainConst):
                 queryendpos -= segmentlength
         return queryendpos
 
-    def to_paf(
-        self, targetref: pysam.FastaFile, queryref: pysam.FastaFile
-    ) -> str:
+    def to_paf(self, targetref: pysam.FastaFile,
+               queryref: pysam.FastaFile) -> str:
         for i, intvl in enumerate(sorted(self.ttree.all_intervals)):
             # deal with indels first, because they are to the left of the matching segment:
             if i > 0:
@@ -446,23 +469,27 @@ class Chain(ChainConst):
                         self.cigarstring += f'{deltat - min_delta}D'
                     self.nmtagval += deltaq
                 else:
-                    self.update_cigar_indel(
-                        deltaq=deltaq, deltat=deltat)
+                    self.update_cigar_indel(deltaq=deltaq, deltat=deltat)
 
             # update matched segment
-            self.update_cigar_match(
-                intvl=intvl,
-                queryref=queryref, qname=self.query,
-                targetref=targetref, tname=self.target)
+            self.update_cigar_match(intvl=intvl,
+                                    queryref=queryref,
+                                    qname=self.query,
+                                    targetref=targetref,
+                                    tname=self.target)
 
         if self.qstrand == '+':
-            msg = (f'{self.query}\t{self.qlen}\t{self.qstart}\t{self.qend}\t{self.qstrand}\t'
-                   f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.total_num_match}\t'
-                   f'{self.total_block_t}\t255\tcg:Z:{self.cigarstring}\tNM:i:{self.nmtagval}')
+            msg = (
+                f'{self.query}\t{self.qlen}\t{self.qstart}\t{self.qend}\t{self.qstrand}\t'
+                f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.total_num_match}\t'
+                f'{self.total_block_t}\t255\tcg:Z:{self.cigarstring}\tNM:i:{self.nmtagval}'
+            )
         else:
-            msg = (f'{self.query}\t{self.qlen}\t{self.qlen - self.qend}\t{self.qlen - self.qstart}\t{self.qstrand}\t'
-                   f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.total_num_match}\t'
-                   f'{self.total_block_t}\t255\tcg:Z:{self.cigarstring}\tNM:i:{self.nmtagval}')
+            msg = (
+                f'{self.query}\t{self.qlen}\t{self.qlen - self.qend}\t{self.qlen - self.qstart}\t{self.qstrand}\t'
+                f'{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.total_num_match}\t'
+                f'{self.total_block_t}\t255\tcg:Z:{self.cigarstring}\tNM:i:{self.nmtagval}'
+            )
         return msg
 
     def to_vcf(self, targetref, queryref) -> None:
@@ -477,24 +504,36 @@ class Chain(ChainConst):
                 # calculate zero-based, half-open ref and alt start/end (subtracting one to add base prior to event)
                 if self.strand == "+":
                     alignseq_qend = intvl.begin + intvl.data[0]
-                    alignseq_qstart = intvl.begin + intvl.data[0] - intvl.data[2] - 1
-                    alignseq_q = queryref.fetch(reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
+                    alignseq_qstart = intvl.begin + intvl.data[0] - intvl.data[
+                        2] - 1
+                    alignseq_q = queryref.fetch(reference=qname,
+                                                start=alignseq_qstart,
+                                                end=alignseq_qend).upper()
                     qpos = alignseq_qstart + 1
                 else:
                     alignseq_qstart = intvl.begin + intvl.data[0]
-                    alignseq_qend = intvl.begin + intvl.data[0] + intvl.data[2] + 1
-                    alignseq_q = queryref.fetch(reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
+                    alignseq_qend = intvl.begin + intvl.data[0] + intvl.data[
+                        2] + 1
+                    alignseq_q = queryref.fetch(reference=qname,
+                                                start=alignseq_qstart,
+                                                end=alignseq_qend).upper()
                     alignseq_q = reverse_complement(alignseq_q)
                     qpos = alignseq_qend
 
-                # end position of indel allele is position to left of matching segment's start, start has a base appended to the left:
+                # End position of indel allele is position to left of
+                # matching segment's start, start has a base appended to the left:
                 alignseq_tend = intvl.begin
                 alignseq_tstart = intvl.begin - intvl.data[1] - 1
-                alignseq_t = targetref.fetch(reference=rname, start=alignseq_tstart, end=alignseq_tend).upper()
+                alignseq_t = targetref.fetch(reference=rname,
+                                             start=alignseq_tstart,
+                                             end=alignseq_tend).upper()
                 rpos = alignseq_tstart + 1
 
-                msg += (f'{rname}\t{rpos}\t.\t{alignseq_t}\t{alignseq_q}\t.\tAUTO\tALN_SCORE={self.score};' +
-                        f'ALN_QUERY={qname};ALN_QPOS={qpos};ALN_STRAND={self.strand};ALN_DQ={intvl.data[2]};ALN_DT={intvl.data[1]}\n')
+                msg += (f'{rname}\t{rpos}\t.\t{alignseq_t}\t{alignseq_q}\t.'
+                        f'\tAUTO\tALN_SCORE={self.score};'
+                        f'ALN_QUERY={qname};ALN_QPOS={qpos};'
+                        f'ALN_STRAND={self.strand};ALN_DQ={intvl.data[2]};'
+                        f'ALN_DT={intvl.data[1]}\n')
 
             # now print SNPs within matched segment:
 
@@ -502,16 +541,22 @@ class Chain(ChainConst):
             if self.strand == "+":
                 alignseq_qstart = intvl.begin + intvl.data[0]
                 alignseq_qend = intvl.end + intvl.data[0]
-                alignseq_q = queryref.fetch(reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
+                alignseq_q = queryref.fetch(reference=qname,
+                                            start=alignseq_qstart,
+                                            end=alignseq_qend).upper()
             else:
                 alignseq_qend = intvl.begin + intvl.data[0]
                 alignseq_qstart = alignseq_qend - (intvl.end - intvl.begin)
-                alignseq_q = queryref.fetch(reference=qname, start=alignseq_qstart, end=alignseq_qend).upper()
+                alignseq_q = queryref.fetch(reference=qname,
+                                            start=alignseq_qstart,
+                                            end=alignseq_qend).upper()
                 alignseq_q = reverse_complement(alignseq_q)
 
             alignseq_tstart = intvl.begin
             alignseq_tend = intvl.end
-            alignseq_t = targetref.fetch(reference=rname, start=alignseq_tstart, end=alignseq_tend).upper()
+            alignseq_t = targetref.fetch(reference=rname,
+                                         start=alignseq_tstart,
+                                         end=alignseq_tend).upper()
 
             segmentlength = intvl.end - intvl.begin
 
@@ -525,9 +570,12 @@ class Chain(ChainConst):
                         qpos = alignseq_qstart + i + 1
                     else:
                         qpos = alignseq_qend - i
-                    msg += (f'{rname}\t{rpos}\t.\t{alignseq_t[i]}\t{alignseq_q[i]}\t.\tAUTO\tALN_SCORE={self.score};ALN_QUERY={qname};ALN_QPOS={qpos};ALN_STRAND={self.strand}\n')
+                    msg += (
+                        f'{rname}\t{rpos}\t.\t{alignseq_t[i]}\t{alignseq_q[i]}'
+                        f'\t.\tAUTO\tALN_SCORE={self.score};ALN_QUERY={qname};'
+                        f'ALN_QPOS={qpos};ALN_STRAND={self.strand}\n')
         return msg.rstrip()
-    
+
     def to_sam(self, targetref, queryref) -> None:
         msg = ''
 
@@ -561,20 +609,24 @@ class Chain(ChainConst):
 
                 # split the alignment if there are unaligned bases in both target and query
                 if deltaq > 0 and deltat > 0:
-                    # write alignment line, increment segment number, reset start positions 
+                    # write alignment line, increment segment number, reset start positions
                     # of alignment and left hard clipping
                     if self.strand == '+':
                         righthardclip = qlen - queryendpos + 1
-                        seq = queryref.fetch(
-                            reference=qname, start=querystartpos-1, end=queryendpos-1).upper()
+                        seq = queryref.fetch(reference=qname,
+                                             start=querystartpos - 1,
+                                             end=queryendpos - 1).upper()
                     else:
                         righthardclip = queryendpos
-                        seq = queryref.fetch(
-                            reference=qname, start=queryendpos, end=querystartpos).upper()
+                        seq = queryref.fetch(reference=qname,
+                                             start=queryendpos,
+                                             end=querystartpos).upper()
                         seq = reverse_complement(seq)
                     fullcigar = f'{lefthardclip}H' + self.cigarstring + f'{righthardclip}H'
-                    msg += (f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}\t'
-                            f'0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{self.nmtagval}\n')
+                    msg += (
+                        f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}\t'
+                        f'0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{self.nmtagval}\n'
+                    )
                     pos = intvl.begin + 1
                     self.cigarstring = ''
                     self.nmtagval = 0
@@ -591,18 +643,24 @@ class Chain(ChainConst):
                         deltaq=deltaq, deltat=deltat, queryendpos=queryendpos)
 
             # update matched segment
-            queryendpos = self.update_cigar_match(
-                intvl=intvl, queryendpos=queryendpos,
-                queryref=queryref, qname=qname,
-                targetref=targetref, tname=rname)
+            queryendpos = self.update_cigar_match(intvl=intvl,
+                                                  queryendpos=queryendpos,
+                                                  queryref=queryref,
+                                                  qname=qname,
+                                                  targetref=targetref,
+                                                  tname=rname)
 
         # write last alignment line
         if self.strand == '+':
             righthardclip = qlen - queryendpos + 1
-            seq = queryref.fetch(reference=qname, start=querystartpos-1, end=queryendpos-1).upper()
+            seq = queryref.fetch(reference=qname,
+                                 start=querystartpos - 1,
+                                 end=queryendpos - 1).upper()
         else:
             righthardclip = queryendpos
-            seq = queryref.fetch(reference=qname, start=queryendpos, end=querystartpos).upper()
+            seq = queryref.fetch(reference=qname,
+                                 start=queryendpos,
+                                 end=querystartpos).upper()
             seq = reverse_complement(seq)
         fullcigar = f'{lefthardclip}H' + self.cigarstring + f'{righthardclip}H'
         msg += (f'{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}'
@@ -621,15 +679,31 @@ def vcf_header(dict_contig_length) -> str:
     header += (f'##fileformat=VCFv4.3\n')
     header += (f'##FILTER=<ID=AUTO,Description="Generated automatically.">\n')
 
-    for contig in sorted(dict_contig_length, key=lambda i: int(dict_contig_length[i]), reverse=True):
-        header += (f'##contig=<ID={contig}, length={dict_contig_length[contig]}>\n')
-    header += (f'##INFO=<ID=ALN_SCORE,Number=A,Type=Integer,Description="Score of chain alignment.">\n')
-    header += (f'##INFO=<ID=ALN_QUERY,Number=A,Type=String,Description="Variant query contig.">\n')
-    header += (f'##INFO=<ID=ALN_QPOS,Number=A,Type=Integer,Description="Variant position on query contig.">\n')
-    header += (f'##INFO=<ID=ALN_STRAND,Number=A,Type=String,Description="Strand of chain alignment.">\n')
-    header += (f'##INFO=<ID=ALN_DT,Number=A,Type=Integer,Description="Length of gap on target sequence.">\n')
-    header += (f'##INFO=<ID=ALN_DQ,Number=A,Type=Integer,Description="Length of gap on query sequence.">\n')
-    header += (f'#CHROM       POS     ID      REF     ALT     QUAL    FILTER  INFO\n')
+    for contig in sorted(dict_contig_length,
+                         key=lambda i: int(dict_contig_length[i]),
+                         reverse=True):
+        header += (f'##contig=<ID={contig}, '
+                   f'length={dict_contig_length[contig]}>\n')
+    header += (
+        f'##INFO=<ID=ALN_SCORE,Number=A,Type=Integer,Description="Score of chain alignment.">\n'
+    )
+    header += (
+        f'##INFO=<ID=ALN_QUERY,Number=A,Type=String,Description="Variant query contig.">\n'
+    )
+    header += (
+        f'##INFO=<ID=ALN_QPOS,Number=A,Type=Integer,Description="Variant position on query contig.">\n'
+    )
+    header += (
+        f'##INFO=<ID=ALN_STRAND,Number=A,Type=String,Description="Strand of chain alignment.">\n'
+    )
+    header += (
+        f'##INFO=<ID=ALN_DT,Number=A,Type=Integer,Description="Length of gap on target sequence.">\n'
+    )
+    header += (
+        f'##INFO=<ID=ALN_DQ,Number=A,Type=Integer,Description="Length of gap on query sequence.">\n'
+    )
+    header += (
+        f'#CHROM       POS     ID      REF     ALT     QUAL    FILTER  INFO\n')
 
     return header.rstrip()
 
@@ -638,7 +712,9 @@ def sam_header(dict_contig_length) -> str:
     header = ''
     header += (f'@HD\tVN:1.6\tSO:unsorted\n')
 
-    for contig in sorted(dict_contig_length, key=lambda i: int(dict_contig_length[i]), reverse=True):
+    for contig in sorted(dict_contig_length,
+                         key=lambda i: int(dict_contig_length[i]),
+                         reverse=True):
         header += (f'@SQ\tSN:{contig}\tLN:{dict_contig_length[contig]}\n')
 
     return header.rstrip()
