@@ -100,9 +100,9 @@ def chain_filter(fn_chain: str,
         elif line.startswith('chain'):
             c = utils.Chain(fields)
         elif len(fields) == 3:
-            c.add_record_three(fields)
+            c.add_record(fields)
         elif len(fields) == 1:
-            c.add_record_one(fields)
+            c.add_record(fields)
 
             filter_size, filter_overlap_target, filter_overlap_query = filter_core(
                 c=c,

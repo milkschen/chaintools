@@ -264,9 +264,9 @@ class TestFilter(unittest.TestCase):
                 elif line.startswith('chain'):
                     c = utils.Chain(fields)
                 elif len(fields) == 3:
-                    c.add_record_three(fields)
+                    c.add_record(fields)
                 elif len(fields) == 1:
-                    c.add_record_one(fields)
+                    c.add_record(fields)
                     filter_results.append(
                         chain_filter.filter_core(c=c,
                                                  segment_size=segment_size,

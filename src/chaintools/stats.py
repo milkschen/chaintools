@@ -44,9 +44,9 @@ def stats(fn_chain: str, fn_out: str):
         elif line.startswith('chain'):
             c = utils.Chain(fields)
         elif len(fields) == 3:
-            c.add_record_three(fields)
+            c.add_record(fields)
         elif len(fields) == 1:
-            c.add_record_one(fields)
+            c.add_record(fields)
 
             if c.strand == '+':
                 num_forward += 1

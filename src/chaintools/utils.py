@@ -186,14 +186,6 @@ class Chain(ChainConst):
         else:
             self.qoffset -= (segment_size + self.dq)
 
-    # TODO: naechyun -- remove old API
-    def add_record_three(self, fields) -> None:
-        self.add_record(fields)
-
-    # TODO: naechyun -- remove old API
-    def add_record_one(self, fields) -> None:
-        self.add_record(fields)
-
     def record_to_bed(self, fields: list, coord: str) -> str:
         segment_size = int(fields[0])
         if segment_size > 0:
