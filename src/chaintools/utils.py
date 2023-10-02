@@ -37,17 +37,6 @@ def fasta_reader(ref_fn: str) -> pysam.FastaFile:
 
 def reverse_complement(seq: str) -> str:
     """Returns the reverse complement of a DNA sequence."""
-    d = {
-        "A": "T",
-        "a": "T",
-        "C": "G",
-        "c": "G",
-        "G": "C",
-        "g": "C",
-        "T": "A",
-        "t": "A",
-        "N": "N",
-    }
     nuc_trans = str.maketrans("AaCcGgTtN", "TTGGCCAAN")
     return seq.translate(nuc_trans)[::-1]
 
