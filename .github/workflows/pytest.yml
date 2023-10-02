@@ -14,7 +14,7 @@ on:
 
 jobs:
   create-env:
-    name: ${{ matrix.os }} 
+    name: OS ${{ matrix.os }}, Py ${{ matrix.python-version }} 
     runs-on: ${{ matrix.os }}
     defaults:
       run:
