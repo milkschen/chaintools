@@ -5,16 +5,14 @@ on:
     branches: [ main ]
     paths:
       - '.github/**'
-      - 'src/chaintools/**'
-      - 'src/chaintools/utils-test.py'
+      - 'chaintools/**'
       - 'testdata/**'
   pull_request:
     branches:
       - 'main'
     paths:      
       - '.github/**'
-      - 'src/chaintools/**'
-      - 'src/chaintools/utils-test.py'
+      - 'chaintools/**'
       - 'testdata/**'
 
 jobs:
@@ -34,9 +32,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       
-      - name: Update PYTHONPATH
-        run: |
-            echo "PYTHONPATH=$(pwd)/src" >> $GITHUB_ENV
+      # - name: Update PYTHONPATH
+      #   run: |
+      #       echo "PYTHONPATH=$(pwd)/src" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
@@ -46,4 +44,4 @@ jobs:
 
       - name: Run test_utils
         run: |
-            python src/chaintools/test_utils.py
+            python -m unittest chaintools/test_*.py
