@@ -3,10 +3,7 @@ name: Python Test
 on:
   push:
     branches: [ main ]
-    paths:
-      - '.github/**'
-      - 'chaintools/**'
-      - 'testdata/**'
+
   pull_request:
     branches:
       - 'main'
@@ -31,10 +28,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-      
-      # - name: Update PYTHONPATH
-      #   run: |
-      #       echo "PYTHONPATH=$(pwd)/src" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
