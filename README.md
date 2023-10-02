@@ -65,7 +65,7 @@ python chaintools/to_bed.py -c <in.chain> -o <out.bed> --coord query
 
 ### Convert to PAF
 
-Convert a chain file to the ([PAF format](https://github.com/lh3/miniasm/blob/master/PAF.md)).
+Convert a chain file to the [PAF format](https://github.com/lh3/miniasm/blob/master/PAF.md).
 
 The target chain is converted as the target sequence, and the query chain is converted as the query sequence.
 
@@ -78,7 +78,7 @@ python chaintools/to_paf.py -c <in.chain> -o <out.paf> [-t <target.fa> -q <query
 
 ### Convert to SAM
 
-Convert a chain file to the ([SAM format](https://samtools.github.io/hts-specs/SAMv1.pdf)),
+Convert a chain file to the [SAM format](https://samtools.github.io/hts-specs/SAMv1.pdf),
 using the target fasta file for the genome _from_ which
 the chain lifts, and the query fasta file for the genome _to_ which the chain lifts.
 
@@ -92,7 +92,7 @@ sixth fields, and query data in the seventh through eleventh fields.
 
 ### Convert to VCF
 
-Convert a chain file to the ([VCF format](https://samtools.github.io/hts-specs/VCFv4.2.pdf)),
+Convert a chain file to the [VCF format](https://samtools.github.io/hts-specs/VCFv4.2.pdf),
 using the target fasta file for the genome _from_ which
 the chain lifts, and the query fasta file for the genome _to_ which the chain lifts.
 
