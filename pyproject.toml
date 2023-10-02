@@ -2,9 +2,12 @@
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+py-modules = ["chaintools"]
+
 [project]
 name = "chaintools"
-version = "0.3"
+version = "0.4"
 authors = [
   { name="Nae-Chyun Chen (@milkschen)" },
   { name="Nancy F. Hansen (@nhansen)" }
