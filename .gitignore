@@ -1,7 +1,6 @@
-src/__pycache__/*
-data/
-env/*
-dist/
 .vscode/*
-src/chaintools.egg-info/*
-src/chaintools/__pycache__/*
+.venv/*
+data/
+dist/
+**/__pycache__/*
+**/chaintools.egg-info/*
