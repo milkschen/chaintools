@@ -84,18 +84,17 @@ def compute_hamming_dist(
     return idy
 
 
-""" Read a chain file and get target entries
-
-Inputs: 
-    - fn: chain filename
-Outputs:
-    - (dict): 
-        key: target contig
-        value: target contig length
-"""
-
-
 def get_target_entries(fn: str) -> dict:
+    """Reads a chain file and gets target entries.
+
+    Args:
+        - fn: chain filename
+
+    Returns:
+        - a dict of:
+            key: target contig
+            value: target contig length
+    """
     CC = ChainConst()
     dict_contig_length = {}
     with open(fn, "r") as f:
@@ -156,7 +155,7 @@ class Chain(ChainConst):
         self.seglen = 0
         # Variables for converting uses
         self.cigarstring = ""
-        self.nmtagval = 0
+        self.nm_tag_val = 0
         self.total_num_match = 0
         self.total_block_t = 0
 
@@ -359,44 +358,30 @@ class Chain(ChainConst):
 
         return True
 
-    """ Update CIGAR string for a gap
-    
-    Inputs:
-        - deltaq: the dq field in a chain line
-        - deltat: the dt field in a chain line
-        - queryendpos (optional): pos_end of the processed segments
-    Outputs:
-        - queryendpos: updated queryendpos
-    """
-
     def update_cigar_indel(
         self, deltaq: int, deltat: int, queryendpos: int = 0
     ) -> int:
+        """Updates CIGAR string for a gap
+
+        Args:
+            - deltaq: the dq field in a chain line
+            - deltat: the dt field in a chain line
+            - queryendpos: pos_end of the processed segments
+
+        Returns:
+            updated queryendpos
+        """
         if deltaq > 0:
             self.cigarstring += f"{deltaq}I"
-            self.nmtagval += deltaq
+            self.nm_tag_val += deltaq
         else:
             self.cigarstring += f"{deltat}D"
-            self.nmtagval += deltat
+            self.nm_tag_val += deltat
         if self.strand == "+":
             queryendpos += deltaq
         else:
             queryendpos -= deltaq
         return queryendpos
-
-    """ Update CIGAR string for a matched chain segment
-    
-    An interval represents zero-based, half-open start/end of a matched segment
-
-    Inputs:
-        - intvl: the chain segment in an interval format
-        - queryref: query FASTA object
-        - qname: query contig name
-        - targetref: target FASTA object
-        - tname: target contig name
-    Outputs:
-        - queryendpos: updated queryendpos
-    """
 
     def update_cigar_match(
         self,
@@ -407,6 +392,22 @@ class Chain(ChainConst):
         tname: str,
         queryendpos: int = 0,
     ) -> int:
+        """Updates CIGAR string for a matched chain segment.
+
+        An interval represents zero-based, half-open start/end of a matched
+        segment.
+
+        Args:
+            - intvl: the chain segment in an interval format
+            - queryref: query FASTA object
+            - qname: query contig name
+            - targetref: target FASTA object
+            - tname: target contig name
+            - queryendpos
+
+        Returns:
+            updated queryendpos
+        """
         segmentlength = intvl.end - intvl.begin
         # If reference sequences are provided
         if queryref and targetref:
@@ -438,7 +439,7 @@ class Chain(ChainConst):
                 if alignseq_q[i] == alignseq_t[i]:
                     if nummismatches > 0:
                         self.cigarstring += f"{nummismatches}X"
-                        self.nmtagval += nummismatches
+                        self.nm_tag_val += nummismatches
                         nummismatches = 0
                     nummatches += 1
                 else:
@@ -452,7 +453,7 @@ class Chain(ChainConst):
                 self.total_block_t += nummatches
             elif nummismatches > 0:
                 self.cigarstring += f"{nummismatches}X"
-                self.nmtagval += nummismatches
+                self.nm_tag_val += nummismatches
                 self.total_block_t += nummismatches
         else:
             # If no reference sequences are provided
@@ -477,6 +478,7 @@ class Chain(ChainConst):
                 self.total_block_t += deltat
                 deltaq = intvl.data[2]
 
+                # Reduces breakpoints
                 if deltaq > 0 and deltat > 0:
                     min_delta = min([deltat, deltaq])
                     self.cigarstring += f"{min_delta}X"
@@ -484,7 +486,7 @@ class Chain(ChainConst):
                         self.cigarstring += f"{deltaq - min_delta}I"
                     elif deltat > min_delta:
                         self.cigarstring += f"{deltat - min_delta}D"
-                    self.nmtagval += deltaq
+                    self.nm_tag_val += deltaq
                 else:
                     self.update_cigar_indel(deltaq=deltaq, deltat=deltat)
 
@@ -501,13 +503,13 @@ class Chain(ChainConst):
             msg = (
                 f"{self.query}\t{self.qlen}\t{self.qstart}\t{self.qend}\t{self.qstrand}\t"
                 f"{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.total_num_match}\t"
-                f"{self.total_block_t}\t255\tcg:Z:{self.cigarstring}\tNM:i:{self.nmtagval}"
+                f"{self.total_block_t}\t255\tcg:Z:{self.cigarstring}\tNM:i:{self.nm_tag_val}"
             )
         else:
             msg = (
                 f"{self.query}\t{self.qlen}\t{self.qlen - self.qend}\t{self.qlen - self.qstart}\t{self.qstrand}\t"
                 f"{self.target}\t{self.tlen}\t{self.tstart}\t{self.tend}\t{self.total_num_match}\t"
-                f"{self.total_block_t}\t255\tcg:Z:{self.cigarstring}\tNM:i:{self.nmtagval}"
+                f"{self.total_block_t}\t255\tcg:Z:{self.cigarstring}\tNM:i:{self.nm_tag_val}"
             )
         return msg
 
@@ -661,11 +663,11 @@ class Chain(ChainConst):
                     )
                     msg += (
                         f"{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}\t"
-                        f"0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{self.nmtagval}\n"
+                        f"0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{self.nm_tag_val}\n"
                     )
                     pos = intvl.begin + 1
                     self.cigarstring = ""
-                    self.nmtagval = 0
+                    self.nm_tag_val = 0
                     if self.strand == "+":
                         lefthardclip = intvl.begin + intvl.data[0]
                         querystartpos = lefthardclip + 1
@@ -704,7 +706,7 @@ class Chain(ChainConst):
         fullcigar = f"{lefthardclip}H" + self.cigarstring + f"{righthardclip}H"
         msg += (
             f"{qname}.{chainid}.{segmentid}\t{flag}\t{rname}\t{pos}"
-            f"\t0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{self.nmtagval}"
+            f"\t0\t{fullcigar}\t*\t0\t0\t{seq}\t*\tNM:i:{self.nm_tag_val}"
         )
 
         return msg

@@ -27,9 +27,9 @@ from chaintools import (
 
 class TestUtils(unittest.TestCase):
     def test_reverse_complement(self):
-        self.assertEquals(utils.reverse_complement("acg"), "CGT")
-        self.assertEquals(utils.reverse_complement("ACG"), "CGT")
-        self.assertEquals(utils.reverse_complement("TCGAN"), "NTCGA")
+        self.assertEqual(utils.reverse_complement("acg"), "CGT")
+        self.assertEqual(utils.reverse_complement("ACG"), "CGT")
+        self.assertEqual(utils.reverse_complement("TCGAN"), "NTCGA")
 
 
 class TestReadingChain(unittest.TestCase):
