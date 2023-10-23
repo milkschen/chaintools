@@ -31,6 +31,31 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(utils.reverse_complement("TCGAN"), "NTCGA")
 
 
+class TestChain(unittest.TestCase):
+    """Tests of the Chain class."""
+
+    def test_update_cigar_indel_simple(self):
+        c = utils.Chain()
+        c.cigarstring = ""
+        c.nm_tag_val = 0
+        c.strand = "+"
+        queryendpos = c.update_cigar_indel(deltaq=0, deltat=1)
+        self.assertEqual(c.cigarstring, "1D")
+        self.assertEqual(queryendpos, 0)
+        queryendpos = c.update_cigar_indel(deltaq=2, deltat=0)
+        self.assertEqual(c.cigarstring, "1D2I")
+        self.assertEqual(queryendpos, 2)
+
+    def test_update_cigar_indel_breakpoint(self):
+        c = utils.Chain()
+        c.cigarstring = ""
+        c.nm_tag_val = 0
+        c.strand = "+"
+        queryendpos = c.update_cigar_indel(deltaq=2000, deltat=300)
+        self.assertEqual(c.cigarstring, "2000I300D")
+        self.assertEqual(queryendpos, 2000)
+
+
 class TestReadingChain(unittest.TestCase):
     """Tests reading a chain file."""
 
@@ -146,7 +171,7 @@ class TestGenerateSAM(unittest.TestCase):
         )
 
 
-class TestGeneratePAF(unittest.TestCase):
+class TestPaf(unittest.TestCase):
     def generate_and_check(self, chainfn, targetfn, queryfn, paffn):
         targetref = utils.fasta_reader(targetfn)
         queryref = utils.fasta_reader(queryfn)

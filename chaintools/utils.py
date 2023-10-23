@@ -371,10 +371,20 @@ class Chain(ChainConst):
         Returns:
             updated queryendpos
         """
+        if deltaq < 0:
+            # TODO use `f"{deltaq=}"` when we don't support py3.7
+            raise ValueError(
+                f"deltaq should not be negative. Got deltaq: {deltaq}"
+            )
+        if deltat < 0:
+            # TODO use `f"{deltat=}"` when we don't support py3.7
+            raise ValueError(
+                f"deltat should not be negative. Got deltat: {deltat}"
+            )
         if deltaq > 0:
             self.cigarstring += f"{deltaq}I"
             self.nm_tag_val += deltaq
-        else:
+        if deltat > 0:
             self.cigarstring += f"{deltat}D"
             self.nm_tag_val += deltat
         if self.strand == "+":
@@ -468,7 +478,10 @@ class Chain(ChainConst):
         return queryendpos
 
     def to_paf(
-        self, targetref: pysam.FastaFile, queryref: pysam.FastaFile
+        self,
+        targetref: pysam.FastaFile,
+        queryref: pysam.FastaFile,
+        preserve_breakpoint: bool = False,
     ) -> str:
         for i, intvl in enumerate(sorted(self.ttree.all_intervals)):
             # deal with indels first, because they are to the left of the
@@ -479,7 +492,7 @@ class Chain(ChainConst):
                 deltaq = intvl.data[2]
 
                 # Reduces breakpoints
-                if deltaq > 0 and deltat > 0:
+                if deltaq > 0 and deltat > 0 and not preserve_breakpoint:
                     min_delta = min([deltat, deltaq])
                     self.cigarstring += f"{min_delta}X"
                     if deltaq > min_delta:

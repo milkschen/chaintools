@@ -33,13 +33,12 @@ def parse_args():
         "-q",
         "--queryfasta",
         default="",
-        help=(
-            "Path to the fasta file for the query " "genome of the chain file"
-        ),
+        help="Path to the fasta file for the query genome of the chain file",
     )
     parser.add_argument(
         "-o", "--output", default="", help="Path to the output PAF file."
     )
+    parser.add_argument("--preserve_breakpoint", action="store_true")
     args = parser.parse_args()
     return args
 
@@ -48,6 +47,7 @@ def write_to_paf(
     f: TextIO,
     targetref: pysam.FastaFile = None,
     queryref: pysam.FastaFile = None,
+    preserve_breakpoint: bool = False,
 ) -> str:
     for line in f:
         fields = line.split()
@@ -58,7 +58,11 @@ def write_to_paf(
         else:
             c.add_record(fields)
             if len(fields) == 1:
-                yield c.to_paf(targetref=targetref, queryref=queryref)
+                yield c.to_paf(
+                    targetref=targetref,
+                    queryref=queryref,
+                    preserve_breakpoint=preserve_breakpoint,
+                )
                 c = None
 
 
@@ -67,6 +71,7 @@ def write_to_paf_io(
     fn_paf: str,
     fn_targetfasta: str = "",
     fn_queryfasta: str = "",
+    preserve_breakpoint: bool = False,
 ) -> None:
     if fn_chain == "-":
         f = sys.stdin
@@ -77,10 +82,12 @@ def write_to_paf_io(
     else:
         fo = sys.stdout
 
-    targetref = utils.fasta_reader(fn_targetfasta)
-    queryref = utils.fasta_reader(fn_queryfasta)
-
-    out = write_to_paf(f=f, targetref=targetref, queryref=queryref)
+    out = write_to_paf(
+        f=f,
+        targetref=utils.fasta_reader(fn_targetfasta),
+        queryref=utils.fasta_reader(fn_queryfasta),
+        preserve_breakpoint=preserve_breakpoint,
+    )
     while True:
         try:
             print(next(out), file=fo)
@@ -95,6 +102,7 @@ def main(argv=sys.argv):
         fn_paf=args.output,
         fn_targetfasta=args.targetfasta,
         fn_queryfasta=args.queryfasta,
+        preserve_breakpoint=args.preserve_breakpoint,
     )
 
 
