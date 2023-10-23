@@ -66,7 +66,7 @@ class TestReadingChain(unittest.TestCase):
         for i in range(len(ii)):
             if ii[i] != oo[i]:
                 raise ValueError(f"Context differ ({ii[i]} != {oo[i]})")
-        return input_txt == output_txt
+        self.assertSequenceEqual(input_txt, output_txt)
 
     def test_read_chain(self):
         for fn in [
@@ -76,7 +76,7 @@ class TestReadingChain(unittest.TestCase):
             "testdata/small.chain",
         ]:
             with self.subTest(msg=f"Failed when reading {fn}"):
-                self.assertTrue(self.read_and_compare(fn))
+                self.read_and_compare(fn)
 
 
 class TestGenerateVcf(unittest.TestCase):
@@ -164,7 +164,7 @@ class TestGeneratePAF(unittest.TestCase):
                 paf_txt += line
         self.assertSequenceEqual(output_txt, paf_txt)
 
-    def test_paf_integrity(self):
+    def test_paf_read_write_integrity(self):
         for test_case in [
             (
                 "testdata/target-query.chain",
@@ -204,55 +204,17 @@ class TestGenerateBED(unittest.TestCase):
             bed_txt = ""
             for line in f:
                 bed_txt += line
-        return output_txt == bed_txt
+        self.assertSequenceEqual(output_txt, bed_txt)
 
-    def test_generate_bed_from_small_target(self):
-        fn = "testdata/target-query.chain"
-        bedfn = "testdata/target-query.target.bed"
-        self.assertTrue(
-            self.generate_and_check(fn, bedfn, "target"),
-            f"Failed when generating BED (target) from {fn}",
-        )
-
-    def test_generate_bed_from_small_query(self):
-        fn = "testdata/target-query.chain"
-        bedfn = "testdata/target-query.query.bed"
-        self.assertTrue(
-            self.generate_and_check(fn, bedfn, "query"),
-            f"Failed when generating BED (query) from {fn}",
-        )
-
-    def test_generate_bed_from_forward_target(self):
-        fn = "testdata/forward.chain"
-        bedfn = "testdata/forward.target.bed"
-        self.assertTrue(
-            self.generate_and_check(fn, bedfn, "target"),
-            f"Failed when generating BED (target) from {fn}",
-        )
-
-    def test_generate_bed_from_forward_query(self):
-        fn = "testdata/forward.chain"
-        bedfn = "testdata/forward.query.bed"
-        self.assertTrue(
-            self.generate_and_check(fn, bedfn, "query"),
-            f"Failed when generating BED (query) from {fn}",
-        )
-
-    def test_generate_bed_from_reversed_target(self):
-        fn = "testdata/reversed.chain"
-        bedfn = "testdata/reversed.target.bed"
-        self.assertTrue(
-            self.generate_and_check(fn, bedfn, "target"),
-            f"Failed when generating BED (target) from {fn}",
-        )
-
-    def test_generate_bed_from_reversed_query(self):
-        fn = "testdata/reversed.chain"
-        bedfn = "testdata/reversed.query.bed"
-        self.assertTrue(
-            self.generate_and_check(fn, bedfn, "query"),
-            f"Failed when generating BED (query) from {fn}",
-        )
+    def test_bed_read_write_integrity(self):
+        for coord in ["target", "query"]:
+            for test_case_name in ["target-query", "forward", "reversed"]:
+                with self.subTest(msg=f"Failed: {test_case_name}"):
+                    self.generate_and_check(
+                        chainfn=f"testdata/{test_case_name}.chain",
+                        bedfn=f"testdata/{test_case_name}.{coord}.bed",
+                        coord=coord,
+                    )
 
 
 class TestFilter(unittest.TestCase):
@@ -379,40 +341,21 @@ class TestSplit(unittest.TestCase):
         oo = output_txt.split("\n")
         for i, l in enumerate(split_txt.split("\n")):
             if l != oo[i]:
-                print(l)
-                print(oo[i])
-                return False
+                raise ValueError(
+                    f"Lines are different: input={l}, output={oo[i]}"
+                )
+        self.assertSequenceEqual(output_txt, split_txt)
         return output_txt == split_txt
 
-    def test_split_from_forward(self):
-        fn = "testdata/forward.chain"
-        splitfn = "testdata/forward-split.chain"
-        self.assertTrue(
-            self.generate_and_check(
-                chainfn=fn, splitfn=splitfn, min_bp=1000, min_gap=10000
-            ),
-            f"Failed when splitting {fn}",
-        )
-
-    def test_split_from_reversed(self):
-        fn = "testdata/reversed.chain"
-        splitfn = "testdata/reversed-split.chain"
-        self.assertTrue(
-            self.generate_and_check(
-                chainfn=fn, splitfn=splitfn, min_bp=1000, min_gap=10000
-            ),
-            f"Failed when splitting {fn}",
-        )
-
-    def test_split_from_reverse2(self):
-        fn = "testdata/reversed2.chain"
-        splitfn = "testdata/reversed2-split.chain"
-        self.assertTrue(
-            self.generate_and_check(
-                chainfn=fn, splitfn=splitfn, min_bp=1000, min_gap=10000
-            ),
-            f"Failed when splitting {fn}",
-        )
+    def test_bed_read_write_integrity(self):
+        for test_case_name in ["forward", "reversed", "reversed2"]:
+            with self.subTest(msg=f"Failed: {test_case_name}"):
+                self.generate_and_check(
+                    chainfn=f"testdata/{test_case_name}.chain",
+                    splitfn=f"testdata/{test_case_name}-split.chain",
+                    min_bp=1000,
+                    min_gap=10000,
+                )
 
     def test_check_split_min_bp(self):
         self.assertTrue(
