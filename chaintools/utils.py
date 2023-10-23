@@ -372,9 +372,15 @@ class Chain(ChainConst):
             updated queryendpos
         """
         if deltaq < 0:
-            raise ValueError(f"deltaq should not be negative. Got {deltaq=}")
+            # TODO use `f"{deltaq=}"` when we don't support py3.7
+            raise ValueError(
+                f"deltaq should not be negative. Got deltaq: {deltaq}"
+            )
         if deltat < 0:
-            raise ValueError(f"deltat should not be negative. Got {deltat=}")
+            # TODO use `f"{deltat=}"` when we don't support py3.7
+            raise ValueError(
+                f"deltat should not be negative. Got deltat: {deltat}"
+            )
         if deltaq > 0:
             self.cigarstring += f"{deltaq}I"
             self.nm_tag_val += deltaq
