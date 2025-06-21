@@ -44,7 +44,7 @@ uv sync
 
 ## Requirements
 
-- Python ≥3.7
+- Python ≥3.8
 - pysam ≥0.15.3
 - intervaltree ≥3.1.0
 
