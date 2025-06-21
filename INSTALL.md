@@ -47,5 +47,7 @@ uv sync
 - Python ≥3.8
 - pysam ≥0.15.3
 - intervaltree ≥3.1.0
+- typer ≥0.9.0
+- pandas ≥0.24.1
 
 Dependencies will be automatically installed with any of the above methods.
