@@ -1,5 +1,5 @@
 """
-Tests for chaintools utilities
+Tests for chaintools_bio utilities
 
 Nae-Chyun Chen
 Johns Hopkins University
@@ -9,11 +9,12 @@ NIH/NHGRI
 
 2021-2022
 """
+
 import unittest
 
 import intervaltree
 
-from chaintools import (
+from chaintools_bio import (
     chain_filter,
     split,
     to_bed,

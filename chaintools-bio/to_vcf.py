@@ -6,7 +6,7 @@ Nancy Fisher Hansen
 NIH/NHGRI
 
 Nae-Chyun Chen
-Johns Hopkins University 
+Johns Hopkins University
 
 2021-2022
 """
@@ -16,7 +16,7 @@ from typing import TextIO
 
 import pysam
 
-from chaintools import utils
+from chaintools_bio import utils
 
 
 def parse_args():
