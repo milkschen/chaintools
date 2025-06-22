@@ -18,13 +18,10 @@ from chaintools_bio import (
     stats,
 )
 
-app = typer.Typer(help="Utilities for the genomic chain format")
-
-
-def version_callback(value: bool):
-    if value:
-        print(f"chaintools_bio version: {__version__}")
-        raise typer.Exit()
+app = typer.Typer(
+    help="Utilities for the genomic chain format",
+    no_args_is_help=True,
+)
 
 
 class CoordSystem(str, Enum):
@@ -163,7 +160,7 @@ def annotate_cmd(
         "", "-o", "--output", help="Path to the output annotated chain file"
     ),
     bed_prefix: str = typer.Option(
-        ..., "-b", "--bed-prefix", help="Prefix for BED output files"
+        "", "-b", "--bed-prefix", help="Prefix for BED output files"
     ),
     summary: str = typer.Option(
         "", "-s", "--summary", help="Path to summary output file"
@@ -237,12 +234,24 @@ def stats_cmd(
     stats.stats(fn_chain=chain, fn_out=output)
 
 
-@app.callback()
-def main(
+def _version_callback(value: bool):
+    if value:
+        print(f"chaintools_bio version: {__version__}")
+        raise typer.Exit()
+
+
+@app.callback(invoke_without_command=True)
+def version_callback(
     version: bool = typer.Option(
-        None, "--version", callback=version_callback, is_eager=True
+        None, "--version", callback=_version_callback, is_eager=True
     ),
 ):
+    pass
+
+
+def main():
+    """Primary entry point for the CLI."""
+    version_callback()
     app()
 
 
