@@ -10,7 +10,7 @@ import argparse
 import re
 import sys
 
-from chaintools import utils
+from chaintools_bio import utils
 
 
 def parse_args():

@@ -16,7 +16,7 @@ from typing import TextIO
 
 import pysam
 
-from chaintools import utils
+from chaintools_bio import utils
 
 
 def parse_args():

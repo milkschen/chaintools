@@ -8,8 +8,8 @@ on:
     branches:
       - 'main'
     paths:      
-      - '.github/**'
-      - 'chaintools/**'
+      - '.github/workflows/pytest.yml'
+      - 'chaintools_bio/**'
       - 'testdata/**'
 
 jobs:
@@ -40,4 +40,4 @@ jobs:
 
       - name: Run test_utils
         run: |
-            python -m unittest chaintools/test_*.py
+            python -m unittest chaintools_bio/test_*.py

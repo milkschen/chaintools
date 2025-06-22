@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Main CLI interface for chaintools using Typer
+Main CLI interface for chaintools_bio using Typer
 """
 import typer
 from enum import Enum
 
-from chaintools import (
+from chaintools_bio import (
     __version__,
     to_bed,
     to_paf,
@@ -23,7 +23,7 @@ app = typer.Typer(help="Utilities for the genomic chain format")
 
 def version_callback(value: bool):
     if value:
-        print(f"chaintools version: {__version__}")
+        print(f"chaintools_bio version: {__version__}")
         raise typer.Exit()
 
 

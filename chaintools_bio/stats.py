@@ -2,7 +2,7 @@
 """
 Filtering a chain file
 
-Nae-Chyun Chen 
+Nae-Chyun Chen
 Johns Hopkins University
 2022
 """
@@ -11,7 +11,7 @@ import sys
 
 import pandas as pd
 
-from chaintools import utils
+from chaintools_bio import utils
 
 
 def parse_args():

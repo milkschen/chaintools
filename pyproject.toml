@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "chaintools"
-version = "0.4"
+name = "chaintools_bio"
+version = "0.4.1"
 authors = [
   { name="Nae-Chyun Chen (@milkschen)" },
   { name="Nancy F. Hansen (@nhansen)" }
@@ -24,8 +24,11 @@ dependencies = [
   "typer>=0.9.0",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["chaintools/chaintools_bio"]
+
 [project.scripts]
-chaintools = "chaintools.cli:main"
+chaintools_bio = "chaintools_bio.cli:main"
 
 [project.urls]
 "Homepage" = "https://github.com/milkschen/chaintools"
