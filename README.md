@@ -1,5 +1,7 @@
 # chaintools_bio: utilities for the genomic chain format
 
+![PyPI - Version](https://img.shields.io/pypi/v/chaintools_bio)
+
 This toolkit provides utilities to process whole-genome maps in the ([chain format](https://genome.ucsc.edu/goldenPath/help/chain.html)).
 
 A chain can be used to convert genomic information from the "target" coordinate system to the "query" coordinate system.
@@ -20,16 +22,14 @@ Lift-over software such as [UCSC LiftOver](https://genome.ucsc.edu/cgi-bin/hgLif
 
 ## Install
 
-```shell
-git clone git@github.com:milkschen/chaintools_bio.git
-# Option 1: pip
-pip install -e .
-# Option 2: uv
-uv pip install -e .
+```bash
+# Option1: with pip
+pip install chaintools
+# Option2: with uv https://docs.astral.sh/uv/
+uv pip install chaintools
 ```
 
-- Python 3.8+
-- See [INSTALL.md](INSTALL.md) for dependencies and installation instructions.
+- See [INSTALL.md](INSTALL.md) for more instructions.
 
 ## Usage
 
