@@ -1,4 +1,4 @@
-# chaintools: utilities for the genomic chain format
+# chaintools_bio: utilities for the genomic chain format
 
 This toolkit provides utilities to process whole-genome maps in the ([chain format](https://genome.ucsc.edu/goldenPath/help/chain.html)).
 
@@ -21,7 +21,7 @@ Lift-over software such as [UCSC LiftOver](https://genome.ucsc.edu/cgi-bin/hgLif
 ## Install
 
 ```shell
-git clone git@github.com:milkschen/chaintools.git
+git clone git@github.com:milkschen/chaintools_bio.git
 # Option 1: pip
 pip install -e .
 # Option 2: uv
@@ -29,31 +29,25 @@ uv pip install -e .
 ```
 
 - Python 3.8+
-- Dependencies: [intervaltree](https://github.com/chaimleib/intervaltree), [pandas](https://pandas.pydata.org), and [pysam](https://pysam.readthedocs.io/en/latest/). See [INSTALL.md](INSTALL.md) for instructions.
+- See [INSTALL.md](INSTALL.md) for dependencies and installation instructions.
 
 ## Usage
-
-### Set up $PYTHONPATH
-
-```shell
-export PYTHONPATH=$(pwd)/:${PYTHONPATH}
-```
 
 ### Annotate
 
 Annotate a chain file:
 
 - Specify the contig and start/end positions of each segment
-- Calculate the identity of each segment (optional)
+- Calculate the sequence identity of each segment (optional)
 - Write liftable regions to a pair of BED files (one for target and one for query) (optional)
 
 ```shell
 # Annotate contig and positions
-chaintools annotate -c <in.chain> -o <out.chain>
+chaintools_bio annotate -c <in.chain> -o <out.chain>
 # Add identity
-chaintools annotate -c <in.chain> -o <out.chain> -fs <target.fasta> -ft <query.fasta>
+chaintools_bio annotate -c <in.chain> -o <out.chain> -fs <target.fasta> -ft <query.fasta>
 # Also write liftable regions to BED files
-chaintools annotate -c <in.chain> -o <out.chain> -fs <target.fasta> -ft <query.fasta> -b <bed_prefix>
+chaintools_bio annotate -c <in.chain> -o <out.chain> -fs <target.fasta> -ft <query.fasta> -b <bed_prefix>
 ```
 
 ### Convert to BED
@@ -62,9 +56,9 @@ Convert a chain file to the BED format using either target or query coordinates
 
 ```shell
 # Report using the target coordinates
-chaintools to_bed -c <in.chain> -o <out.bed> --coord target
+chaintools_bio to_bed -c <in.chain> -o <out.bed> --coord target
 # Report using the query coordinates
-chaintools to_bed -c <in.chain> -o <out.bed> --coord query
+chaintools_bio to_bed -c <in.chain> -o <out.bed> --coord query
 ```
 
 ### Convert to PAF
@@ -77,7 +71,7 @@ If both `target.fa` and `query.fa` are provided, this script checks the referenc
 Otherwise, it uses `[MID]+` and `[X]+` at chain break points. A breakpoint is a gap wrt both target and query, e.g., `149 341 2894`.
 
 ```shell
-chaintools to_paf -c <in.chain> -o <out.paf> [-t <target.fa> -q <query.fa>]
+chaintools_bio to_paf -c <in.chain> -o <out.paf> [-t <target.fa> -q <query.fa>]
 ```
 
 ### Convert to SAM
@@ -87,7 +81,7 @@ using the target fasta file for the genome _from_ which
 the chain lifts, and the query fasta file for the genome _to_ which the chain lifts.
 
 ```shell
-chaintools to_sam -c <in.chain> -t <target.fa> -q <query.fa> -o <out.sam>
+chaintools_bio to_sam -c <in.chain> -t <target.fa> -q <query.fa> -o <out.sam>
 ```
 
 Note: For a chain file used to convert from a target genome's coordinates to a query
@@ -101,7 +95,7 @@ using the target fasta file for the genome _from_ which
 the chain lifts, and the query fasta file for the genome _to_ which the chain lifts.
 
 ```shell
-chaintools to_vcf -c <in.chain> -t <target.fa> -q <query.fa> -o <out.vcf>
+chaintools_bio to_vcf -c <in.chain> -t <target.fa> -q <query.fa> -o <out.vcf>
 ```
 
 ### Filter
@@ -112,9 +106,9 @@ The overlap filter makes sure no chains overlap wrt either target or query refer
 
 ```shell
 # Filter by chain size
-chaintools chain_filter -c <in.chain> -o <out.filtered.chain> -s <size>
+chaintools_bio chain_filter -c <in.chain> -o <out.filtered.chain> -s <size>
 # Filter by both chain size and overlap status
-chaintools chain_filter -c <in.chain> -o <out.filtered.chain> -u -oc <out.overlapped.chain> -s <size>
+chaintools_bio chain_filter -c <in.chain> -o <out.filtered.chain> -u -oc <out.overlapped.chain> -s <size>
 ```
 
 ### Invert
@@ -122,7 +116,7 @@ chaintools chain_filter -c <in.chain> -o <out.filtered.chain> -u -oc <out.overla
 Invert a chain file by switching the target and query references
 
 ```shell
-chaintools invert -c <a_to_b.chain> -o <b_to_a.chain>
+chaintools_bio invert -c <a_to_b.chain> -o <b_to_a.chain>
 ```
 
 ### Split
@@ -130,7 +124,7 @@ chaintools invert -c <a_to_b.chain> -o <b_to_a.chain>
 Split a chain at large gaps or breakpoints. A breakpoint is a gap wrt both target and query, e.g., `149 341 2894`.
 
 ```shell
-chaintools split -c <in.chain> -o <split.chain> [--min_gap <INT> --min_bp <INT>]
+chaintools_bio split -c <in.chain> -o <split.chain> [--min_gap <INT> --min_bp <INT>]
 ```
 
 ### Stats
@@ -138,5 +132,5 @@ chaintools split -c <in.chain> -o <split.chain> [--min_gap <INT> --min_bp <INT>]
 Calculate summary statistics of a chain file
 
 ```shell
-chaintools stats -c <in.chain> -o <stats.tsv>
+chaintools_bio stats -c <in.chain> -o <stats.tsv>
 ```
