@@ -24,11 +24,8 @@ dependencies = [
   "typer>=0.9.0",
 ]
 
-[tool.hatch.build.targets.wheel]
-packages = ["chaintools/chaintools_bio"]
-
 [project.scripts]
 chaintools_bio = "chaintools_bio.cli:main"
 
 [project.urls]
-"Homepage" = "https://github.com/milkschen/chaintools"
+"Homepage" = "https://github.com/milkschen/chaintools_bio"

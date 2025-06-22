@@ -9,6 +9,7 @@ on:
       - 'main'
     paths:      
       - '.github/workflows/pytest.yml'
+      - 'pyproject.toml'
       - 'chaintools_bio/**'
       - 'testdata/**'
 
