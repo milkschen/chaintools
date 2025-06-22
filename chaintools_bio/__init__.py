@@ -14,7 +14,7 @@ if sys.version_info < (3, 8):
     # )
 
 try:
-    __version__ = version("chaintools-bio")
+    __version__ = version("chaintools_bio")
 except PackageNotFoundError:
     # package is not installed
     pass
