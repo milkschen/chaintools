@@ -84,10 +84,10 @@ def to_sam_cmd(
         "", "-o", "--output", help="Path to the output SAM file"
     ),
     target_fasta: str = typer.Option(
-        "", "-t", "--target-fasta", help="Path to the target FASTA file"
+        ..., "-t", "--target-fasta", help="Path to the target FASTA file"
     ),
     query_fasta: str = typer.Option(
-        "", "-q", "--query-fasta", help="Path to the query FASTA file"
+        ..., "-q", "--query-fasta", help="Path to the query FASTA file"
     ),
 ):
     """Convert a chain file to the SAM format"""
@@ -108,10 +108,10 @@ def to_vcf_cmd(
         "", "-o", "--output", help="Path to the output VCF file"
     ),
     target_fasta: str = typer.Option(
-        "", "-t", "--target-fasta", help="Path to the target FASTA file"
+        ..., "-t", "--target-fasta", help="Path to the target FASTA file"
     ),
     query_fasta: str = typer.Option(
-        "", "-q", "--query-fasta", help="Path to the query FASTA file"
+        ..., "-q", "--query-fasta", help="Path to the query FASTA file"
     ),
 ):
     """Convert a chain file to the VCF format"""
