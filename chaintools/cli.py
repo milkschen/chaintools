@@ -6,6 +6,7 @@ import typer
 from enum import Enum
 
 from chaintools import (
+    __version__,
     to_bed,
     to_paf,
     to_sam,
@@ -20,6 +21,12 @@ from chaintools import (
 app = typer.Typer(help="Utilities for the genomic chain format")
 
 
+def version_callback(value: bool):
+    if value:
+        print(f"chaintools version: {__version__}")
+        raise typer.Exit()
+
+
 class CoordSystem(str, Enum):
     target = "target"
     query = "query"
@@ -27,7 +34,9 @@ class CoordSystem(str, Enum):
 
 @app.command("to-bed")
 def to_bed_cmd(
-    chain: str = typer.Option("-", "-c", "--chain", help="Path to the chain file"),
+    chain: str = typer.Option(
+        "-", "-c", "--chain", help="Path to the chain file"
+    ),
     output: str = typer.Option(
         "", "-o", "--output", help="Path to the output BED file"
     ),
@@ -41,7 +50,9 @@ def to_bed_cmd(
 
 @app.command("to-paf")
 def to_paf_cmd(
-    chain: str = typer.Option("-", "-c", "--chain", help="Path to the chain file"),
+    chain: str = typer.Option(
+        "-", "-c", "--chain", help="Path to the chain file"
+    ),
     output: str = typer.Option(
         "", "-o", "--output", help="Path to the output PAF file"
     ),
@@ -69,7 +80,9 @@ def to_paf_cmd(
 
 @app.command("to-sam")
 def to_sam_cmd(
-    chain: str = typer.Option("-", "-c", "--chain", help="Path to the chain file"),
+    chain: str = typer.Option(
+        "-", "-c", "--chain", help="Path to the chain file"
+    ),
     output: str = typer.Option(
         "", "-o", "--output", help="Path to the output SAM file"
     ),
@@ -91,7 +104,9 @@ def to_sam_cmd(
 
 @app.command("to-vcf")
 def to_vcf_cmd(
-    chain: str = typer.Option("-", "-c", "--chain", help="Path to the chain file"),
+    chain: str = typer.Option(
+        "-", "-c", "--chain", help="Path to the chain file"
+    ),
     output: str = typer.Option(
         "", "-o", "--output", help="Path to the output VCF file"
     ),
@@ -113,7 +128,9 @@ def to_vcf_cmd(
 
 @app.command("filter")
 def filter_cmd(
-    chain: str = typer.Option("", "-c", "--chain", help="Path to the chain file"),
+    chain: str = typer.Option(
+        "", "-c", "--chain", help="Path to the chain file"
+    ),
     output: str = typer.Option(
         "", "-o", "--output", help="Path to the output chain file"
     ),
@@ -139,7 +156,9 @@ def filter_cmd(
 
 @app.command("annotate")
 def annotate_cmd(
-    chain: str = typer.Option(..., "-c", "--chain", help="Path to the chain file"),
+    chain: str = typer.Option(
+        ..., "-c", "--chain", help="Path to the chain file"
+    ),
     output: str = typer.Option(
         "", "-o", "--output", help="Path to the output annotated chain file"
     ),
@@ -173,7 +192,9 @@ def annotate_cmd(
 
 @app.command("invert")
 def invert_cmd(
-    chain: str = typer.Option("-", "-c", "--chain", help="Path to the chain file"),
+    chain: str = typer.Option(
+        "-", "-c", "--chain", help="Path to the chain file"
+    ),
     output: str = typer.Option(
         "", "-o", "--output", help="Path to the output inverted chain file"
     ),
@@ -184,22 +205,30 @@ def invert_cmd(
 
 @app.command("split")
 def split_cmd(
-    chain: str = typer.Option(..., "-c", "--chain", help="Path to the chain file"),
+    chain: str = typer.Option(
+        ..., "-c", "--chain", help="Path to the chain file"
+    ),
     output: str = typer.Option(
         "", "-o", "--output", help="Path to the output split chain file"
     ),
     min_bp: int = typer.Option(
         1000, "--min-bp", help="Minimum breakpoint size to split"
     ),
-    min_gap: int = typer.Option(10000, "--min-gap", help="Minimum gap size to split"),
+    min_gap: int = typer.Option(
+        10000, "--min-gap", help="Minimum gap size to split"
+    ),
 ):
     """Split a chain file by breakpoints"""
-    split.split_chain_io(fn_chain=chain, fn_out=output, min_bp=min_bp, min_gap=min_gap)
+    split.split_chain_io(
+        fn_chain=chain, fn_out=output, min_bp=min_bp, min_gap=min_gap
+    )
 
 
 @app.command("stats")
 def stats_cmd(
-    chain: str = typer.Option(..., "-c", "--chain", help="Path to the chain file"),
+    chain: str = typer.Option(
+        ..., "-c", "--chain", help="Path to the chain file"
+    ),
     output: str = typer.Option(
         "", "-o", "--output", help="Path to the output statistics file"
     ),
@@ -208,7 +237,12 @@ def stats_cmd(
     stats.stats(fn_chain=chain, fn_out=output)
 
 
-def main():
+@app.callback()
+def main(
+    version: bool = typer.Option(
+        None, "--version", callback=version_callback, is_eager=True
+    ),
+):
     app()
 
 

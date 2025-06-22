@@ -18,10 +18,10 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
 ]
 dependencies = [
-  "pysam>=0.15.3",
   "intervaltree>=3.1.0",
+  "pandas",
+  "pysam>=0.15.3",
   "typer>=0.9.0",
-  "pandas"
 ]
 
 [project.scripts]
