@@ -45,6 +45,7 @@ jobs:
 
       - name: Build and run CLI
         run: |
+            pip install build
             python -m build
             chaintools_bio --version
             chaintools_bio --help
