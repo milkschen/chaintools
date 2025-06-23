@@ -1,0 +1,22 @@
+name: Check uv.lock is up to date
+
+on:
+  paths:
+    - 'pyproject.toml'
+    - 'uv.lock'
+
+jobs:
+  check-uv-lock:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v1
+
+      - name: Check if uv.lock is up to date
+        run: |
+          uv lock --check
+        shell: bash
