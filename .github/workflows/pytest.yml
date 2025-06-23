@@ -42,3 +42,9 @@ jobs:
       - name: Run test_utils
         run: |
             python -m unittest chaintools_bio/test_*.py
+
+      - name: Build and run CLI
+        run: |
+            python -m build
+            chaintools_bio --version
+            chaintools_bio --help
