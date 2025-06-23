@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "chaintools_bio"
-version = "0.4.1"
+version = "0.4.test"
 authors = [
   { name="Nae-Chyun Chen (@milkschen)" },
   { name="Nancy F. Hansen (@nhansen)" }
