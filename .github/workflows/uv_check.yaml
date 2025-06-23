@@ -25,5 +25,9 @@ jobs:
 
       - name: Check if uv.lock is up to date
         run: |
-          uv lock --check
+          uv lock
+          if [ -n "$(git diff --name-only uv.lock)" ]; then
+            echo "uv.lock is out of date. Please run 'uv lock' and commit the changes."
+            exit 1
+          fi
         shell: bash
